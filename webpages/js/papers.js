@@ -459,20 +459,19 @@
       var tr = _.cloneTemplate('experiment-row-template').children[0];
       tableBodyNode.insertBefore(tr, addRowNode);
 
-      _.fillEls(tr, '.exptitle:not(.unsaved):not(.validationerror)', paper.experiments[expIndex].title);
-      _.fillEls(tr, '.expdescription', paper.experiments[expIndex].description);
+      _.fillEls(tr, '.exptitle:not(.unsaved):not(.validationerror)', experiment.title);
+      _.fillEls(tr, '.expdescription', experiment.description);
 
-      if (!paper.experiments[expIndex].title) {
+      if (!experiment.title) {
         _.addClass(tr, '.exptitle.editing:not(.unsaved):not(.validationerror)', 'new');
         _.fillEls(tr, '.exptitle + .exptitlerename', 'confirm');
       } else {
-        _.removeClass(tr, '.exptitle.editing:not(.unsaved):not(.validationerror)', 'new');
         _.fillEls(tr, '.exptitle + .exptitlerename', 'rename');
       }
 
       addOnInputUpdater(tr, ".expdescription.editing", 'textContent', identity, paper, ['experiments', expIndex, 'description']);
 
-      _.setDataProps(tr, '.exptitle.editing', 'origTitle', paper.experiments[expIndex].title);
+      _.setDataProps(tr, '.exptitle.editing', 'origTitle', experiment.title);
       addConfirmedUpdater(tr, '.exptitle.editing', '.exptitle + .exptitlerename', null, 'textContent', checkExperimentTitleUnique, paper, ['experiments', expIndex, 'title'], deleteNewExperiment);
 
       setupPopupBoxPinning(tr, '.fullrowinfo.popupbox', expIndex);
@@ -483,7 +482,6 @@
         tr.appendChild(td);
 
         var val = null;
-        var experiment = paper.experiments[expIndex];
         if (experiment.data && experiment.data[colId]) {
           val = experiment.data[colId];
         }
@@ -505,33 +503,22 @@
         setupPopupBoxPinning(td, '.datum.popupbox', expIndex + '$' + colId);
 
         // populate comments
-        addPaperDOMSetter(function (newPaper) {
-          var col = lima.columns[colId];
-          // fix up colId in case it got updated by saving a new column
-          colId = col.id;
+        var comments = [];
+        if (experiment.data && experiment.data[colId]) {
+          comments = experiment.data[colId].comments || [];
+        }
 
-          var newComments = [];
-          if (newPaper.experiments[expIndex].data && newPaper.experiments[expIndex].data[colId]) {
-            newComments = newPaper.experiments[expIndex].data[colId].comments || [];
-          }
+        if (comments.length > 0) {
+          td.classList.add('hascomments');
+        }
 
-          if (newComments.length > 0) {
-            td.classList.add('hascomments');
-          } else {
-            td.classList.remove('hascomments');
-          }
-
-          if (col.new) {
-            td.classList.add('newcol');
-          } else {
-            td.classList.remove('newcol');
-          }
-          _.fillEls(td, '.commentcount', newComments.length);
-        });
+        if (col.new) {
+          td.classList.add('newcol');
+        }
+        _.fillEls(td, '.commentcount', comments.length);
 
         fillComments('comment-template', td, '.datum.popupbox main', paper, ['experiments', expIndex, 'data', colId, 'comments']);
       });
-
     });
 
     // fill in the empty last row of the table
@@ -539,10 +526,7 @@
       var td = document.createElement('td');
       addRowNode.appendChild(td);
 
-      addPaperDOMSetter(function () {
-        lima.columnTypes.forEach(function (type) {td.classList.remove(type);});
-        td.classList.add(lima.columns[colId].type);
-      });
+      td.classList.add(lima.columns[colId].type);
     });
 
     _.addEventListener(table, 'tr.add button.add', 'click', addExperimentRow);
