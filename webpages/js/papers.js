@@ -152,8 +152,6 @@
   var fillingTags = false;
 
   function fillPaper(paper) {
-    resetDOMSetters();
-
     // cleanup
     var oldPaperEl = _.byId('paper');
     if (oldPaperEl) oldPaperEl.parentElement.removeChild(oldPaperEl);
@@ -1257,28 +1255,6 @@
    *
    *
    */
-  var paperDOMSetters;
-  var paperChangeVerifiers;
-
-  resetDOMSetters();
-
-  function resetDOMSetters() {
-    paperDOMSetters = [];
-    paperChangeVerifiers = [];
-  }
-
-  function addPaperDOMSetter (f) {
-    if (f && paperDOMSetters.indexOf(f) === -1) paperDOMSetters.push(f);
-  }
-
-  function addPaperChangeVerifier (f) {
-    if (paperChangeVerifiers.indexOf(f) === -1) paperChangeVerifiers.push(f);
-  }
-
-  function callPaperDOMSetters(paper) {
-    paperDOMSetters.forEach(function (setter) { setter(paper); });
-  }
-
   var identity = null; // special value to use as validatorSanitizer
 
   function addOnInputUpdater(root, selector, property, validatorSanitizer, target, targetProp) {
