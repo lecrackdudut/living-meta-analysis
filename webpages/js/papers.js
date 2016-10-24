@@ -161,13 +161,12 @@
       paper = Object.assign(new Paper(), paper);
     }
 
-    var isSmallChange = currentPaper != null && paperChangeVerifiers.every(function (verifier) { return verifier(paper); });
     if (currentPaper !== paper) regenerateColumnOrder(paper);
     currentPaper = paper;
-    if (!isSmallChange) fillPaper(paper);
-    callPaperDOMSetters(paper);
+    fillPaper(paper);
 
-    if (!isSmallChange && !paper.id) focusFirstValidationError(); // go to editing the title
+    // for a new paper, go to editing the title
+    if (!paper.id) focusFirstValidationError();
   }
 
   var startNewTag = null;
@@ -183,159 +182,154 @@
     var paperEl = _.cloneTemplate(paperTemplate);
     paperTemplate.parentElement.insertBefore(paperEl, paperTemplate);
 
-    addPaperDOMSetter(function(paper) {
-      if (!paper.id) {
-        _.addClass('body', 'new');
-        lima.toggleEditing(true, true);
-      } else {
-        _.removeClass('body', 'new');
-      }
+    if (!paper.id) {
+      _.addClass('body', 'new');
+      lima.toggleEditing(true, true);
+    }
 
-      var ownURL = createPageURL(lima.getAuthenticatedUserEmail(), paper.title);
-      _.setProps('#paper .edityourcopy a', 'href', ownURL);
+    var ownURL = createPageURL(lima.getAuthenticatedUserEmail(), paper.title);
+    _.setProps('#paper .edityourcopy a', 'href', ownURL);
 
-      _.fillEls('#paper .title:not(.unsaved):not(.validationerror)', paper.title);
-      fillingTags = true; // because that causes onBlur on a new tag and that mustn't be a save
-      _.fillTags('#paper .tags', paper.tags, flashTag); flashTag = null;
-      fillingTags = false;
-      _.fillEls ('#paper .authors .value', paper.authors);
-      _.fillEls ('#paper .reference .value', paper.reference);
-      _.fillEls ('#paper .description .value', paper.description);
-      _.fillEls ('#paper .link .value:not(.unsaved):not(.validationerror)', paper.link);
-      _.setProps('#paper .link a.value', 'href', paper.link);
-      _.fillEls ('#paper .doi .value:not(.unsaved):not(.validationerror)', paper.doi);
-      _.setProps('#paper .doi a.value', 'href', function(el){return el.dataset.base + paper.doi});
-      _.fillEls ('#paper .enteredby .value', paper.enteredBy);
-      _.setProps('#paper .enteredby .value', 'href', '/' + paper.enteredBy + '/');
-      _.fillEls ('#paper .ctime .value', _.formatDateTime(paper.ctime));
-      _.fillEls ('#paper .mtime .value', _.formatDateTime(paper.mtime));
+    _.fillEls('#paper .title:not(.unsaved):not(.validationerror)', paper.title);
+    fillingTags = true; // because that causes onBlur on a new tag and that mustn't be a save
+    _.fillTags('#paper .tags', paper.tags, flashTag); flashTag = null;
+    fillingTags = false;
+    _.fillEls ('#paper .authors .value', paper.authors);
+    _.fillEls ('#paper .reference .value', paper.reference);
+    _.fillEls ('#paper .description .value', paper.description);
+    _.fillEls ('#paper .link .value:not(.unsaved):not(.validationerror)', paper.link);
+    _.setProps('#paper .link a.value', 'href', paper.link);
+    _.fillEls ('#paper .doi .value:not(.unsaved):not(.validationerror)', paper.doi);
+    _.setProps('#paper .doi a.value', 'href', function(el){return el.dataset.base + paper.doi});
+    _.fillEls ('#paper .enteredby .value', paper.enteredBy);
+    _.setProps('#paper .enteredby .value', 'href', '/' + paper.enteredBy + '/');
+    _.fillEls ('#paper .ctime .value', _.formatDateTime(paper.ctime));
+    _.fillEls ('#paper .mtime .value', _.formatDateTime(paper.mtime));
 
-      _.setDataProps('#paper .enteredby.needs-owner', 'owner', paper.enteredBy);
+    _.setDataProps('#paper .enteredby.needs-owner', 'owner', paper.enteredBy);
 
-      addConfirmedUpdater('#paper .link span.editing', '#paper .link button.confirm', '#paper .link button.cancel', 'textContent', identity, paper, 'link');
-      addConfirmedUpdater('#paper .doi span.editing', '#paper .doi button.confirm', '#paper .doi button.cancel', 'textContent', identity, paper, 'doi');
+    addConfirmedUpdater('#paper .link span.editing', '#paper .link button.confirm', '#paper .link button.cancel', 'textContent', identity, paper, 'link');
+    addConfirmedUpdater('#paper .doi span.editing', '#paper .doi button.confirm', '#paper .doi button.cancel', 'textContent', identity, paper, 'doi');
 
-      // workaround for chrome not focusing right
-      // clicking on the placeholder 'doi' of an empty editable doi value focuses the element but doesn't react to subsequent key strokes
-      _.addEventListener('#paper .link .value.editing', 'click', blurAndFocus);
-      _.addEventListener('#paper .doi .value.editing', 'click', blurAndFocus);
+    // workaround for chrome not focusing right
+    // clicking on the placeholder 'doi' of an empty editable doi value focuses the element but doesn't react to subsequent key strokes
+    _.addEventListener('#paper .link .value.editing', 'click', blurAndFocus);
+    _.addEventListener('#paper .doi .value.editing', 'click', blurAndFocus);
 
-      addOnInputUpdater("#paper .authors .value", 'textContent', identity, paper, 'authors');
-      addOnInputUpdater("#paper .reference .value", 'textContent', identity, paper, 'reference');
-      addOnInputUpdater("#paper .description .value", 'textContent', identity, paper, 'description');
+    addOnInputUpdater("#paper .authors .value", 'textContent', identity, paper, 'authors');
+    addOnInputUpdater("#paper .reference .value", 'textContent', identity, paper, 'reference');
+    addOnInputUpdater("#paper .description .value", 'textContent', identity, paper, 'description');
 
-      currentPaperOrigTitle = paper.title;
-      addConfirmedUpdater('#paper .title.editing', '#paper .title + .titlerename', '#paper .title ~ * .titlerenamecancel', 'textContent', checkPaperTitleUnique, paper, 'title');
+    currentPaperOrigTitle = paper.title;
+    addConfirmedUpdater('#paper .title.editing', '#paper .title + .titlerename', '#paper .title ~ * .titlerenamecancel', 'textContent', checkPaperTitleUnique, paper, 'title');
 
-      /* editTags
-       *
-       *                         #######
-       *   ###### #####  # #####    #      ##    ####   ####
-       *   #      #    # #   #      #     #  #  #    # #
-       *   #####  #    # #   #      #    #    # #       ####
-       *   #      #    # #   #      #    ###### #  ###      #
-       *   #      #    # #   #      #    #    # #    # #    #
-       *   ###### #####  #   #      #    #    #  ####   ####
-       *
-       *
-       */
+    /* editTags
+     *
+     *                         #######
+     *   ###### #####  # #####    #      ##    ####   ####
+     *   #      #    # #   #      #     #  #  #    # #
+     *   #####  #    # #   #      #    #    # #       ####
+     *   #      #    # #   #      #    ###### #  ###      #
+     *   #      #    # #   #      #    #    # #    # #    #
+     *   ###### #####  #   #      #    #    #  ####   ####
+     *
+     *
+     */
 
-      if (!paper.tags) paper.tags = [];
+    if (!paper.tags) paper.tags = [];
 
-      // events for removing a tag
-      _.findEls('#paper .tags .tag + .removetag').forEach(function (btn) {
-        btn.onclick = function () {
-          var el = btn;
-          while (el && !el.classList.contains('tag')) el = el.previousElementSibling;
-          while (el && !el.classList.contains('tag')) el = el.parentElement;
-          if (el) {
-            var text = el.textContent;
-            var i = paper.tags.indexOf(text);
-            if (i !== -1) {
-              paper.tags.splice(i, 1);
-              updatePaperView();
-              _.scheduleSave(paper);
-            } else {
-              console.error('removing tag but can\'t find it: ' + text);
-            }
-          }
-        }
-      })
-      // events for starting to add a tag
-      _.findEls('#paper .tags .new + .addtag').forEach(function (btn) {
-        btn.onclick = function () {
-          var el = btn.previousElementSibling;
-          el.classList.add('editing');
-          _.findEl(el, '.tag').focus();
-        }
-        if (startNewTag !== null) {
-          btn.onclick();
-          var el = _.findEl('#paper .tags .new .tag');
-          el.textContent = startNewTag;
-          if (startNewTag) {
-            // put cursor at the end of the text
-            var selection = window.getSelection();
-            var range = document.createRange();
-            range.setStartAfter(el.childNodes[el.childNodes.length-1]);
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
-          }
-          startNewTag = null;
-        }
-      })
-      // events for adding a tag
-      _.findEls('#paper .tags .new .tag').forEach(function (el) {
-        el.onblur = function () {
-          if (fillingTags) {
-            startNewTag = el.textContent;
-            return;
-          }
+    // events for removing a tag
+    _.findEls('#paper .tags .tag + .removetag').forEach(function (btn) {
+      btn.onclick = function () {
+        var el = btn;
+        while (el && !el.classList.contains('tag')) el = el.previousElementSibling;
+        while (el && !el.classList.contains('tag')) el = el.parentElement;
+        if (el) {
           var text = el.textContent;
-          if (!text) {
-            if (startNewTag !== null) {
-              setTimeout(function() {el.focus()}, 0); // focus() inside the blur event may not work
-              el.textContent = startNewTag;
-              startNewTag = null;
-            } else {
-              _.removeClass('#paper .tags .new', 'editing');
-            }
-          } else {
-            var add = paper.tags.indexOf(text) === -1;
-            if (add) {
-              paper.tags.push(text);
-            }
-            flashTag = text;
+          var i = paper.tags.indexOf(text);
+          if (i !== -1) {
+            paper.tags.splice(i, 1);
             updatePaperView();
-            if (add) {
-              _.scheduleSave(paper);
-            }
+            _.scheduleSave(paper);
+          } else {
+            console.error('removing tag but can\'t find it: ' + text);
           }
         }
-        el.onkeydown = function (ev) {
-          // enter
-          if (ev.keyCode === 13 && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+      }
+    })
+    // events for starting to add a tag
+    _.findEls('#paper .tags .new + .addtag').forEach(function (btn) {
+      btn.onclick = function () {
+        var el = btn.previousElementSibling;
+        el.classList.add('editing');
+        _.findEl(el, '.tag').focus();
+      }
+      if (startNewTag !== null) {
+        btn.onclick();
+        var el = _.findEl('#paper .tags .new .tag');
+        el.textContent = startNewTag;
+        if (startNewTag) {
+          // put cursor at the end of the text
+          var selection = window.getSelection();
+          var range = document.createRange();
+          range.setStartAfter(el.childNodes[el.childNodes.length-1]);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        startNewTag = null;
+      }
+    })
+    // events for adding a tag
+    _.findEls('#paper .tags .new .tag').forEach(function (el) {
+      el.onblur = function () {
+        if (fillingTags) {
+          startNewTag = el.textContent;
+          return;
+        }
+        var text = el.textContent;
+        if (!text) {
+          if (startNewTag !== null) {
+            setTimeout(function() {el.focus()}, 0); // focus() inside the blur event may not work
+            el.textContent = startNewTag;
             startNewTag = null;
-            ev.preventDefault();
-            el.blur();
-          }
-          // escape
-          else if (ev.keyCode === 27) {
-            startNewTag = null;
+          } else {
             _.removeClass('#paper .tags .new', 'editing');
-            el.textContent = '';
           }
-          // tab or comma starts a new tag
-          else if ((ev.keyCode === 9 || ev.keyCode === 188) && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
-            startNewTag = '';
-            ev.preventDefault();
-            el.blur();
+        } else {
+          var add = paper.tags.indexOf(text) === -1;
+          if (add) {
+            paper.tags.push(text);
           }
-          else _.deferScheduledSave();
+          flashTag = text;
+          updatePaperView();
+          if (add) {
+            _.scheduleSave(paper);
+          }
         }
-      })
-
-    });
+      }
+      el.onkeydown = function (ev) {
+        // enter
+        if (ev.keyCode === 13 && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+          startNewTag = null;
+          ev.preventDefault();
+          el.blur();
+        }
+        // escape
+        else if (ev.keyCode === 27) {
+          startNewTag = null;
+          _.removeClass('#paper .tags .new', 'editing');
+          el.textContent = '';
+        }
+        // tab or comma starts a new tag
+        else if ((ev.keyCode === 9 || ev.keyCode === 188) && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+          startNewTag = '';
+          ev.preventDefault();
+          el.blur();
+        }
+        else _.deferScheduledSave();
+      }
+    })
 
     fillPaperExperimentTable(paper);
 
@@ -772,50 +766,43 @@
    *
    */
 
-  function fillComments(templateId, root, selector, oldPaper, commentsPropPath) {
+  function fillComments(templateId, root, selector, paper, commentsPropPath) {
     var targetEl = _.findEl(root, selector);
     targetEl.innerHTML = '';
-    var oldComments = getDeepValue(oldPaper, commentsPropPath) || [];
+    var oldComments = getDeepValue(paper, commentsPropPath) || [];
     for (var index = 0; index < oldComments.length; index++) {
-      (function (index) {
-        // inline function to save `index` and `el`
-        var el = _.cloneTemplate(templateId).children[0];
-        addPaperDOMSetter(function (paper) {
-          var user = lima.getAuthenticatedUserEmail();
-          var comments = getDeepValue(paper, commentsPropPath);
-          var comment = comments[index];
-          if (index === comments.length - 1) {
-            _.setDataProps(el, '.needs-owner', 'owner', comment.by);
-          } else {
-            // this will disable editing of any comment but the last
-            _.setDataProps(el, '.needs-owner', 'owner', '');
-          }
-          _.fillEls(el, '.commentnumber', index+1);
-          _.fillEls(el, '.by', comment.by || user);
-          _.setProps(el, '.by', 'href', '/' + (comment.by || user) + '/');
-          _.fillEls(el, '.ctime', _.formatDateTime(comment.ctime || Date.now()));
-          _.fillEls(el, '.text', comment.text);
+      var el = _.cloneTemplate(templateId).children[0];
+      var user = lima.getAuthenticatedUserEmail();
+      var comments = getDeepValue(paper, commentsPropPath);
+      var comment = comments[index];
+      if (index === comments.length - 1) {
+        _.setDataProps(el, '.needs-owner', 'owner', comment.by);
+      } else {
+        // this will disable editing of any comment but the last
+        _.setDataProps(el, '.needs-owner', 'owner', '');
+      }
+      _.fillEls(el, '.commentnumber', index+1);
+      _.fillEls(el, '.by', comment.by || user);
+      _.setProps(el, '.by', 'href', '/' + (comment.by || user) + '/');
+      _.fillEls(el, '.ctime', _.formatDateTime(comment.ctime || Date.now()));
+      _.fillEls(el, '.text', comment.text);
 
-          addOnInputUpdater(el, '.text', 'textContent', identity, paper, commentsPropPath.concat(index, 'text'));
-        });
-        targetEl.appendChild(el);
-      })(index);
+      addOnInputUpdater(el, '.text', 'textContent', identity, paper, commentsPropPath.concat(index, 'text'));
+      targetEl.appendChild(el);
     }
 
-    addPaperDOMSetter(function (paper) {
-      // events for adding a comment
-      _.findEls(root, '.comment.new .text').forEach(function (el) {
-        el.onblur = function () {
-          var text = el.textContent;
-          el.textContent = '';
-          if (text.trim()) {
-            var comments = getDeepValue(paper, commentsPropPath, []);
-            comments.push({ text: text });
-            updatePaperView();
-            _.scheduleSave(paper);
-          }
+    // events for adding a comment
+    _.findEls(root, '.comment.new .text').forEach(function (el) {
+      el.onblur = function () {
+        var text = el.textContent;
+        el.textContent = '';
+        if (text.trim()) {
+          var comments = getDeepValue(paper, commentsPropPath, []);
+          comments.push({ text: text });
+          updatePaperView();
+          _.scheduleSave(paper);
         }
-      });
+      }
     });
   }
 
