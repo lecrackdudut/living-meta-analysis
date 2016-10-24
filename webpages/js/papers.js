@@ -160,7 +160,6 @@
     var paperEl = _.cloneTemplate(paperTemplate);
     paperTemplate.parentElement.insertBefore(paperEl, paperTemplate);
 
-    addPaperChangeVerifier(function (newPaper) { return paper.id === newPaper.id; });
     addPaperDOMSetter(function(paper) {
       if (!paper.id) {
         _.addClass('body', 'new');
@@ -344,12 +343,6 @@
 
     var table = _.cloneTemplate('experiments-table-template');
 
-    // will do a rebuild of the page if number of experiments has changed
-    var experimentsLength = experiments.length;
-    addPaperChangeVerifier(function (newPaper) {
-      return newPaper.experiments && newPaper.experiments.length === experimentsLength;
-    });
-
     // show the table if it's not empty or
     // hide the empty experiment data table if the user can't edit it
     if (experiments.length) {
@@ -361,18 +354,6 @@
     var showColumns = findColumnsInPaper(paper);
     // when accessing showColumns members, need to do a lookup through lima.columns
     // because showColumns[i] may be a temporary ID of a new column, which gets renamed on save
-
-    // a small change doesn't add/remove or change columns
-    addPaperChangeVerifier(function (newPaper) {
-      var newPaperShowColumns = findColumnsInPaper(newPaper);
-      if (newPaperShowColumns.length !== showColumns.length) return false;
-
-      for (var i = 0; i < showColumns.length; i++) {
-        if (lima.columns[showColumns[i]].id !== newPaperShowColumns[i]) return false;
-      }
-
-      return true;
-    });
 
     /* column headings
      *
@@ -521,22 +502,6 @@
           td.classList.add(col.type);
 
           setupPopupBoxPinning(td, '.datum.popupbox', expIndex + '$' + colId);
-        });
-
-        // oldCommentsLength is a static snapshot of the size in case comments change underneath us by adding a comment
-        var oldCommentsLength = 0;
-        if (experiment.data && experiment.data[colId] && experiment.data[colId].comments) {
-          oldCommentsLength = experiment.data[colId].comments.length;
-        }
-        addPaperChangeVerifier(function (newPaper) {
-          // fix up colId in case it got updated by saving a new column
-          colId = lima.columns[colId].id;
-
-          var newComments = [];
-          if (newPaper.experiments[expIndex].data && newPaper.experiments[expIndex].data[colId]) {
-            newComments = newPaper.experiments[expIndex].data[colId].comments || [];
-          }
-          return oldCommentsLength === newComments.length;
         });
 
         // populate comments
