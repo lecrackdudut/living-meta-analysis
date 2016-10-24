@@ -131,6 +131,29 @@
   function Paper() {}
   Paper.prototype.save = savePaper;
 
+  function updateAfterColumnSave() {
+    // clean experiment data of new columns that got new ID when they were saved
+    currentPaper.experiments.forEach(function (experiment) {
+      if (experiment.data) Object.keys(experiment.data).forEach(function (key) {
+        var col = lima.columns[key];
+        if (col && col.id !== key) {
+          experiment.data[col.id] = experiment.data[key];
+          delete experiment.data[key];
+        }
+      });
+    });
+
+    // clean columnOrder the same way
+    if (Array.isArray(currentPaper.columnOrder)) currentPaper.columnOrder.forEach(function (key, index) {
+      var col = lima.columns[key];
+      if (col && col.id !== key) {
+        currentPaper.columnOrder[index] = col.id;
+      }
+    });
+
+    updatePaperView();
+  }
+
   function updatePaperView(paper) {
     if (!paper) paper = currentPaper;
 
@@ -318,7 +341,7 @@
 
     _.removeClass('body', 'loading');
 
-    addPaperDOMSetter(_.setYouOrName);
+    _.setYouOrName();
 
     // now that the paper is all there, install various general and specific event listeners
     _.addEventListener('[contenteditable].oneline', 'keydown', blurOnEnter);
@@ -332,9 +355,7 @@
     _.addEventListener('#paper .validationerrormessage', 'click', focusFirstValidationError);
     _.addEventListener('#paper .unsavedmessage', 'click', focusFirstUnsaved);
 
-    addPaperDOMSetter(function () {
-      if (pinnedBox) pinPopupBox(pinnedBox);
-    });
+    if (pinnedBox) pinPopupBox(pinnedBox);
   }
 
   function fillPaperExperimentTable(paper) {
@@ -351,10 +372,6 @@
       _.addClass('#paper', 'no-data');
     }
 
-    var showColumns = findColumnsInPaper(paper);
-    // when accessing showColumns members, need to do a lookup through lima.columns
-    // because showColumns[i] may be a temporary ID of a new column, which gets renamed on save
-
     /* column headings
      *
      *
@@ -368,61 +385,55 @@
      *
      */
 
+    var showColumns = findColumnsInPaper(paper);
+
     // fill column headings
     var headingsRowNode = _.findEl(table, 'tr:first-child');
     var addColumnNode = _.findEl(table, 'tr:first-child > th.add');
     showColumns.forEach(function (colId) {
+      var col = lima.columns[colId];
       var th = _.cloneTemplate('col-heading-template').children[0];
       _.addEventListener(th, 'button.move', 'click', moveColumn);
       headingsRowNode.insertBefore(th, addColumnNode);
-      addPaperDOMSetter(function () {
-        var col = lima.columns[colId];
-        // fix up colId in case it got updated by saving a new column
-        colId = col.id;
 
-        var user = lima.getAuthenticatedUserEmail();
-        var curtime = Date.now();
-        _.fillEls(th, '.coltitle:not(.unsaved):not(.validationerror)', col.title);
-        _.fillEls(th, '.coldescription', col.description);
-        _.fillEls(th, '.colctime .value', _.formatDateTime(col.ctime || curtime));
-        _.fillEls(th, '.colmtime .value', _.formatDateTime(col.mtime || curtime));
-        _.fillEls(th, '.definedby .value', col.definedBy || user);
-        _.setProps(th, '.definedby .value', 'href', '/' + (col.definedBy || user) + '/');
+      var user = lima.getAuthenticatedUserEmail();
+      var curtime = Date.now();
+      _.fillEls(th, '.coltitle:not(.unsaved):not(.validationerror)', col.title);
+      _.fillEls(th, '.coldescription', col.description);
+      _.fillEls(th, '.colctime .value', _.formatDateTime(col.ctime || curtime));
+      _.fillEls(th, '.colmtime .value', _.formatDateTime(col.mtime || curtime));
+      _.fillEls(th, '.definedby .value', col.definedBy || user);
+      _.setProps(th, '.definedby .value', 'href', '/' + (col.definedBy || user) + '/');
 
-        _.setDataProps(th, '.needs-owner', 'owner', col.definedBy || user);
+      _.setDataProps(th, '.needs-owner', 'owner', col.definedBy || user);
 
-        _.setDataProps(th, 'button', 'id', col.id);
+      _.setDataProps(th, 'button', 'id', col.id);
 
-        lima.columnTypes.forEach(function (type) {
-          _.removeClass(th, '.coltype', type);
-          th.classList.remove(type);
-        });
-        th.classList.add(col.type);
-        _.addClass(th, '.coltype', col.type);
+      th.classList.add(col.type);
+      _.addClass(th, '.coltype', col.type);
 
-        if (col.new) {
-          th.classList.add('newcol');
-          _.addClass(th, '.coltype', 'newcol');
-          _.setDataProps(th, '.coltype', 'id', col.id);
-          _.fillEls(th, '.coltitle + .coltitlerename', 'confirm');
-          _.addClass(th, '.coltitle.editing:not(.unsaved):not(.validationerror)', 'new');
-        } else {
-          th.classList.remove('newcol');
-          _.removeClass(th, '.coltype', 'newcol');
-          _.fillEls(th, '.coltitle + .coltitlerename', 'rename');
-          _.removeClass(th, '.coltitle.editing:not(.unsaved):not(.validationerror)', 'new');
-        }
+      if (col.new) {
+        th.classList.add('newcol');
+        _.addClass(th, '.coltype', 'newcol');
+        _.setDataProps(th, '.coltype', 'id', col.id);
+        _.fillEls(th, '.coltitle + .coltitlerename', 'confirm');
+        _.addClass(th, '.coltitle.editing:not(.unsaved):not(.validationerror)', 'new');
+      } else {
+        th.classList.remove('newcol');
+        _.removeClass(th, '.coltype', 'newcol');
+        _.fillEls(th, '.coltitle + .coltitlerename', 'rename');
+        _.removeClass(th, '.coltitle.editing:not(.unsaved):not(.validationerror)', 'new');
+      }
 
-        addOnInputUpdater(th, '.coldescription', 'textContent', identity, col, ['description']);
+      addOnInputUpdater(th, '.coldescription', 'textContent', identity, col, ['description']);
 
-        addConfirmedUpdater(th, '.coltitle.editing', '.coltitle ~ .coltitlerename', '.coltitle ~ * .colrenamecancel', 'textContent', checkColTitle, col, 'title', deleteNewColumn);
+      addConfirmedUpdater(th, '.coltitle.editing', '.coltitle ~ .coltitlerename', '.coltitle ~ * .colrenamecancel', 'textContent', checkColTitle, col, 'title', deleteNewColumn);
 
-        lima.columnTypes.forEach(function (type) {
-          _.setDataProps(th, '.coltype .switch.type-' + type, 'newType', type);
-        });
-
-        setupPopupBoxPinning(th, '.fullcolinfo.popupbox', col.id);
+      lima.columnTypes.forEach(function (type) {
+        _.setDataProps(th, '.coltype .switch.type-' + type, 'newType', type);
       });
+
+      setupPopupBoxPinning(th, '.fullcolinfo.popupbox', col.id);
 
       _.addEventListener(th, '.coltype .switch', 'click', changeColumnType);
       _.addEventListener(th, '.coltypeconfirm button', 'click', changeColumnTypeConfirmOrCancel);
@@ -448,61 +459,50 @@
       var tr = _.cloneTemplate('experiment-row-template').children[0];
       tableBodyNode.insertBefore(tr, addRowNode);
 
-      addPaperDOMSetter(function (paper) {
-        _.fillEls(tr, '.exptitle:not(.unsaved):not(.validationerror)', paper.experiments[expIndex].title);
-        _.fillEls(tr, '.expdescription', paper.experiments[expIndex].description);
+      _.fillEls(tr, '.exptitle:not(.unsaved):not(.validationerror)', paper.experiments[expIndex].title);
+      _.fillEls(tr, '.expdescription', paper.experiments[expIndex].description);
 
-        if (!paper.experiments[expIndex].title) {
-          _.addClass(tr, '.exptitle.editing:not(.unsaved):not(.validationerror)', 'new');
-          _.fillEls(tr, '.exptitle + .exptitlerename', 'confirm');
-        } else {
-          _.removeClass(tr, '.exptitle.editing:not(.unsaved):not(.validationerror)', 'new');
-          _.fillEls(tr, '.exptitle + .exptitlerename', 'rename');
-        }
+      if (!paper.experiments[expIndex].title) {
+        _.addClass(tr, '.exptitle.editing:not(.unsaved):not(.validationerror)', 'new');
+        _.fillEls(tr, '.exptitle + .exptitlerename', 'confirm');
+      } else {
+        _.removeClass(tr, '.exptitle.editing:not(.unsaved):not(.validationerror)', 'new');
+        _.fillEls(tr, '.exptitle + .exptitlerename', 'rename');
+      }
 
-        addOnInputUpdater(tr, ".expdescription.editing", 'textContent', identity, paper, ['experiments', expIndex, 'description']);
+      addOnInputUpdater(tr, ".expdescription.editing", 'textContent', identity, paper, ['experiments', expIndex, 'description']);
 
-        _.setDataProps(tr, '.exptitle.editing', 'origTitle', paper.experiments[expIndex].title);
-        addConfirmedUpdater(tr, '.exptitle.editing', '.exptitle + .exptitlerename', null, 'textContent', checkExperimentTitleUnique, paper, ['experiments', expIndex, 'title'], deleteNewExperiment);
+      _.setDataProps(tr, '.exptitle.editing', 'origTitle', paper.experiments[expIndex].title);
+      addConfirmedUpdater(tr, '.exptitle.editing', '.exptitle + .exptitlerename', null, 'textContent', checkExperimentTitleUnique, paper, ['experiments', expIndex, 'title'], deleteNewExperiment);
 
-        setupPopupBoxPinning(tr, '.fullrowinfo.popupbox', expIndex);
-      })
+      setupPopupBoxPinning(tr, '.fullrowinfo.popupbox', expIndex);
 
       showColumns.forEach(function (colId) {
+        var col = lima.columns[colId];
         var td = _.cloneTemplate('experiment-datum-template').children[0];
         tr.appendChild(td);
 
-        // populate the value
-        addPaperDOMSetter(function (paper) {
-          var col = lima.columns[colId];
-          // fix up colId in case it got updated by saving a new column
-          colId = col.id;
+        var val = null;
+        var experiment = paper.experiments[expIndex];
+        if (experiment.data && experiment.data[colId]) {
+          val = experiment.data[colId];
+        }
 
-          var val = null;
-          var experiment = paper.experiments[expIndex];
-          if (experiment.data && experiment.data[colId]) {
-            val = experiment.data[colId];
-          }
+        if (!val || val.value == null) {
+          td.classList.add('empty');
+        }
 
-          if (val && val.value != null) {
-            td.classList.remove('empty');
-          } else {
-            td.classList.add('empty');
-          }
+        _.fillEls(td, '.value', val && val.value || '');
+        addOnInputUpdater(td, '.value', 'textContent', identity, paper, ['experiments', expIndex, 'data', colId, 'value']);
 
-          _.fillEls(td, '.value', val && val.value || '');
-          addOnInputUpdater(td, '.value', 'textContent', identity, paper, ['experiments', expIndex, 'data', colId, 'value']);
+        var user = lima.getAuthenticatedUserEmail();
+        _.fillEls (td, '.valenteredby', val && val.enteredBy || user);
+        _.setProps(td, '.valenteredby', 'href', '/' + (val && val.enteredBy || user) + '/');
+        _.fillEls (td, '.valctime', _.formatDateTime(val && val.ctime || Date.now()));
 
-          var user = lima.getAuthenticatedUserEmail();
-          _.fillEls (td, '.valenteredby', val && val.enteredBy || user);
-          _.setProps(td, '.valenteredby', 'href', '/' + (val && val.enteredBy || user) + '/');
-          _.fillEls (td, '.valctime', _.formatDateTime(val && val.ctime || Date.now()));
+        td.classList.add(col.type);
 
-          lima.columnTypes.forEach(function (type) {td.classList.remove(type);});
-          td.classList.add(col.type);
-
-          setupPopupBoxPinning(td, '.datum.popupbox', expIndex + '$' + colId);
-        });
+        setupPopupBoxPinning(td, '.datum.popupbox', expIndex + '$' + colId);
 
         // populate comments
         addPaperDOMSetter(function (newPaper) {
@@ -1043,24 +1043,6 @@
     var showColumnsHash = {};
     var showCharacteristicColumns = [];
     var showResultColumns = [];
-
-    // clean experiment data and columnOrder of new columns that got new ID when they were saved
-    paper.experiments.forEach(function (experiment) {
-      if (experiment.data) Object.keys(experiment.data).forEach(function (key) {
-        var col = lima.columns[key];
-        if (col && col.id !== key) {
-          experiment.data[col.id] = experiment.data[key];
-          delete experiment.data[key];
-        }
-      });
-    });
-
-    if (Array.isArray(paper.columnOrder)) paper.columnOrder.forEach(function (key, index) {
-      var col = lima.columns[key];
-      if (col && col.id !== key) {
-        paper.columnOrder[index] = col.id;
-      }
-    });
 
     // now gather columns in the paper, then sort the columns by type and order
     paper.experiments.forEach(function (experiment) {
@@ -1622,6 +1604,7 @@
   lima.requestAndFillPaper = requestAndFillPaper;
 
   lima.updateView = updatePaperView;
+  lima.updateAfterColumnSave = updateAfterColumnSave;
 
   // for testing
   lima.pinPopupBox = pinPopupBox;
