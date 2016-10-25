@@ -120,6 +120,10 @@
       else return _.fetchJson(response);
     })
     .then(updatePaperView)
+    .then(function() {
+      _.removeClass('body', 'loading');
+      lima.onSignInChange(updatePaperView);
+    })
     .catch(function (err) {
       console.error("problem getting paper");
       console.error(err);
@@ -331,8 +335,6 @@
     })
 
     fillPaperExperimentTable(paper);
-
-    _.removeClass('body', 'loading');
 
     _.setYouOrName();
 
