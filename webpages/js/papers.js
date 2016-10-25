@@ -164,6 +164,10 @@
     if (!(paper instanceof Paper)) {
       paper = Object.assign(new Paper(), paper);
 
+      // if paper doesn't have experiments or column order, add empty arrays for ease of handling
+      if (!Array.isArray(paper.experiments)) paper.experiments = [];
+      if (!Array.isArray(paper.columnOrder)) paper.columnOrder = [];
+
       // if some column type has changed, make sure the paper reflects that
       moveResultsAfterCharacteristics(paper);
     }
@@ -373,7 +377,6 @@
 
   function fillPaperExperimentTable(paper) {
     var experiments = paper.experiments;
-    if (!Array.isArray(experiments)) experiments = paper.experiments = [];
 
     var table = _.cloneTemplate('experiments-table-template');
 
