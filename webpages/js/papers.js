@@ -1269,6 +1269,8 @@
 
   function assignDeepValue(target, targetProp, value) {
     if (Array.isArray(targetProp)) {
+      // copy targetProp so we can manipulate it
+      targetProp = targetProp.slice();
       while (targetProp.length > 1) {
         var prop = targetProp.shift();
         if (!(prop in target) || target[prop] == null) {
