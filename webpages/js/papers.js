@@ -355,18 +355,27 @@
     }
   }
 
+  /* fill Exp table
+   *
+   *                             #######
+   *   ###### # #      #         #       #    # #####     #####   ##   #####  #      ######
+   *   #      # #      #         #        #  #  #    #      #    #  #  #    # #      #
+   *   #####  # #      #         #####     ##   #    #      #   #    # #####  #      #####
+   *   #      # #      #         #         ##   #####       #   ###### #    # #      #
+   *   #      # #      #         #        #  #  #           #   #    # #    # #      #
+   *   #      # ###### ######    ####### #    # #           #   #    # #####  ###### ######
+   *
+   *
+   */
   function fillPaperExperimentTable(paper) {
     var experiments = paper.experiments;
 
-    var table = _.cloneTemplate('experiments-table-template');
-
-    // show the table if it's not empty or
     // hide the empty experiment data table if the user can't edit it
-    if (experiments.length) {
-      _.removeClass('#paper', 'no-data');
-    } else {
+    if (!experiments.length) {
       _.addClass('#paper', 'no-data');
     }
+
+    var table = _.cloneTemplate('experiments-table-template');
 
     /* column headings
      *
@@ -382,18 +391,18 @@
      */
 
 
-    // fill column headings
     var headingsRowNode = _.findEl(table, 'tr:first-child');
     var addColumnNode = _.findEl(table, 'tr:first-child > th.add');
+
+    var curtime = Date.now();
+    var user = lima.getAuthenticatedUserEmail();
+
     paper.columnOrder.forEach(function (colId) {
       var col = lima.columns[colId];
       var th = _.cloneTemplate('col-heading-template').children[0];
-      _.addEventListener(th, 'button.move', 'click', moveColumn);
       headingsRowNode.insertBefore(th, addColumnNode);
 
-      var user = lima.getAuthenticatedUserEmail();
-      var curtime = Date.now();
-      _.fillEls(th, '.coltitle:not(.unsaved):not(.validationerror)', col.title);
+      _.fillEls(th, '.coltitle', col.title);
       _.fillEls(th, '.coldescription', col.description);
       _.fillEls(th, '.colctime .value', _.formatDateTime(col.ctime || curtime));
       _.fillEls(th, '.colmtime .value', _.formatDateTime(col.mtime || curtime));
@@ -402,6 +411,7 @@
 
       _.setDataProps(th, '.needs-owner', 'owner', col.definedBy || user);
 
+      _.addEventListener(th, 'button.move', 'click', moveColumn);
       _.setDataProps(th, 'button', 'id', col.id);
 
       th.classList.add(col.type);
@@ -411,13 +421,9 @@
         th.classList.add('newcol');
         _.addClass(th, '.coltype', 'newcol');
         _.setDataProps(th, '.coltype', 'id', col.id);
-        _.fillEls(th, '.coltitle + .coltitlerename', 'confirm');
         _.addClass(th, '.coltitle.editing:not(.unsaved):not(.validationerror)', 'new');
-      } else {
-        th.classList.remove('newcol');
-        _.removeClass(th, '.coltype', 'newcol');
-        _.fillEls(th, '.coltitle + .coltitlerename', 'rename');
-        _.removeClass(th, '.coltitle.editing:not(.unsaved):not(.validationerror)', 'new');
+        // todo move the confirm/rename difference into html, but that means we have multiple confirm buttons and addConfirmedUpdater might be unhappy
+        _.fillEls(th, '.coltitle + .coltitlerename', 'confirm');
       }
 
       addOnInputUpdater(th, '.coldescription', 'textContent', identity, col, ['description']);
