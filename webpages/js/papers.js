@@ -163,15 +163,33 @@
 
     if (!(paper instanceof Paper)) {
       paper = Object.assign(new Paper(), paper);
+
+      // if some column type has changed, make sure the paper reflects that
+      moveResultsAfterCharacteristics(paper);
     }
 
-    if (currentPaper !== paper) regenerateColumnOrder(paper);
     currentPaper = paper;
+
     fillPaper(paper);
 
     // for a new paper, go to editing the title
     if (!paper.id) focusFirstValidationError();
   }
+
+  // todo this would be useful for testing
+  // function assertAllColumnsAreInColumnOrder(paper) {
+  //   if (!paper.experiments) return;
+  //
+  //   // now gather columns in the paper, then sort the columns by type and order
+  //   paper.experiments.forEach(function (experiment) {
+  //     if (experiment.data) Object.keys(experiment.data).forEach(checkColumn);
+  //   });
+  //
+  //   function checkColumn(key) {
+  //     if (paper.columnOrder.indexOf(key) === -1) throw new Error('column ' + key + ' is in the data but not in columnOrder!');
+  //   }
+  // }
+  // also should check that in columnOrder all characteristics precede all results
 
   var startNewTag = null;
   var flashTag = null;
@@ -380,12 +398,11 @@
      *
      */
 
-    var showColumns = findColumnsInPaper(paper);
 
     // fill column headings
     var headingsRowNode = _.findEl(table, 'tr:first-child');
     var addColumnNode = _.findEl(table, 'tr:first-child > th.add');
-    showColumns.forEach(function (colId) {
+    paper.columnOrder.forEach(function (colId) {
       var col = lima.columns[colId];
       var th = _.cloneTemplate('col-heading-template').children[0];
       _.addEventListener(th, 'button.move', 'click', moveColumn);
@@ -467,7 +484,7 @@
 
       setupPopupBoxPinning(tr, '.fullrowinfo.popupbox', expIndex);
 
-      showColumns.forEach(function (colId) {
+      paper.columnOrder.forEach(function (colId) {
         var col = lima.columns[colId];
         var td = _.cloneTemplate('experiment-datum-template').children[0];
         tr.appendChild(td);
@@ -513,7 +530,7 @@
     });
 
     // fill in the empty last row of the table
-    showColumns.forEach(function (colId) {
+    paper.columnOrder.forEach(function (colId) {
       var td = document.createElement('td');
       addRowNode.appendChild(td);
 
@@ -678,6 +695,7 @@
       return;
     }
     if (currentPaper.columnOrder.indexOf(col.id) > -1) return; // do nothing on columns that are already there
+    // todo this will change when un-hiding a column
 
     currentPaper.columnOrder.push(col.id);
     moveResultsAfterCharacteristics(currentPaper);
@@ -1004,48 +1022,6 @@
    *
    */
 
-  function findColumnsInPaper(paper) {
-    if (!paper.experiments) return [];
-
-    // find the columns used in the experiments
-    var showColumnsHash = {};
-    var showCharacteristicColumns = [];
-    var showResultColumns = [];
-
-    // now gather columns in the paper, then sort the columns by type and order
-    paper.experiments.forEach(function (experiment) {
-      if (experiment.data) Object.keys(experiment.data).forEach(addColumn);
-    });
-
-    if (Array.isArray(paper.columnOrder)) paper.columnOrder.forEach(addColumn);
-
-    function addColumn(key) {
-      if (!(key in showColumnsHash)) {
-        var col = lima.columns[key];
-        showColumnsHash[key] = col;
-        switch (col.type) {
-          case 'characteristic': showCharacteristicColumns.push(col.id); break;
-          case 'result':         showResultColumns.push(col.id); break;
-        }
-      }
-    }
-
-    showCharacteristicColumns.sort(compareColsByOrder);
-    showResultColumns.sort(compareColsByOrder);
-
-    return showCharacteristicColumns.concat(showResultColumns);
-
-    function compareColsByOrder(c1, c2) {
-      if (!Array.isArray(paper.columnOrder)) return 0;
-      var i1 = paper.columnOrder.indexOf(c1);
-      var i2 = paper.columnOrder.indexOf(c2);
-      if (i1 === i2) return 0;
-      if (i1 === -1) return 1;
-      if (i2 === -1) return -1;
-      return i1 - i2;
-    }
-  }
-
   function moveColumn() {
     // a click will pin the box,
     // this timout makes sure the click gets processed first and then we do the moving
@@ -1058,26 +1034,12 @@
     var colId = el.dataset.id;
     if (!colId) return; // we don't know what to move
 
-    regenerateColumnOrder(currentPaper);
     var i = currentPaper.columnOrder.indexOf(colId);
     if (i === -1) return console.error('column ' + colId + ' not found in newly regenerated order!');
     _.moveInArray(currentPaper.columnOrder, i, left, most);
     moveResultsAfterCharacteristics(currentPaper);
     updatePaperView();
     _.scheduleSave(currentPaper);
-  }
-
-  function regenerateColumnOrder(paper) {
-    if (!Array.isArray(paper.columnOrder)) paper.columnOrder = [];
-
-    var columns = findColumnsInPaper(paper);
-    columns.forEach(function (colId) {
-      if (paper.columnOrder.indexOf(colId) === -1) {
-        paper.columnOrder.push(colId);
-      }
-    })
-
-    moveResultsAfterCharacteristics(paper);
   }
 
   function moveResultsAfterCharacteristics(paper) {
@@ -1150,6 +1112,7 @@
 
     if (!btn.classList.contains('cancel')) {
       col.type = coltypeEl.dataset.newType;
+      moveResultsAfterCharacteristics(currentPaper);
       updatePaperView();
       _.scheduleSave(col);
     }
