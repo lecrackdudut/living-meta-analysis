@@ -197,11 +197,14 @@
 
   var startNewTag = null;
   var flashTag = null;
+  var rebuildingDOM = false;
 
   function fillPaper(paper) {
     // cleanup
     var oldPaperEl = _.byId('paper');
+    rebuildingDOM = true;
     if (oldPaperEl) oldPaperEl.parentElement.removeChild(oldPaperEl);
+    rebuildingDOM = false;
 
     if (!paper.id) {
       _.addClass('body', 'new');
@@ -311,36 +314,54 @@
       newTagContainer.classList.add('editing');
       newTag.focus();
     }
-    if (startNewTag) {
+    if (startNewTag != null) {
       btn.onclick();
-      startNewTag = false;
+      newTag.textContent = startNewTag;
+
+      if (startNewTag != '') {
+        // put cursor at the end of the text
+        // todo we could remember the old selection and replicate it
+        var selection = window.getSelection();
+        var range = document.createRange();
+        range.setStartAfter(newTag.childNodes[newTag.childNodes.length-1]);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      startNewTag = null;
     }
 
     // events for adding a tag
     newTag.onblur = function () {
-      var text = newTag.textContent.trim();
-      if (!text) {
-        newTagContainer.classList.remove('editing');
+      if (rebuildingDOM) {
+        // the blur has happened because a DOM rebuild (e.g. after save) is destroying the element we were editing
+        startNewTag = newTag.textContent;
       } else {
-        if (paper.tags.indexOf(text) === -1) {
-          paper.tags.push(text);
-          _.scheduleSave(paper);
+        var text = newTag.textContent.trim();
+        if (!text) {
+          newTagContainer.classList.remove('editing');
+        } else {
+          if (paper.tags.indexOf(text) === -1) {
+            paper.tags.push(text);
+            _.scheduleSave(paper);
+          }
+          flashTag = text;
+          fillTags(paperEl, paper);
         }
-        flashTag = text;
-        fillTags(paperEl, paper);
       }
     }
     newTag.onkeydown = function (ev) {
       _.deferScheduledSave();
       // enter
       if (ev.keyCode === 13 && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
-        startNewTag = false;
+        startNewTag = null;
         ev.preventDefault();
         newTag.blur();
       }
       // escape
       else if (ev.keyCode === 27) {
-        startNewTag = false;
+        startNewTag = null;
         newTagContainer.classList.remove('editing');
         newTag.textContent = '';
       }
@@ -348,7 +369,7 @@
       else if ((ev.keyCode === 9 || ev.keyCode === 188) && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
         ev.preventDefault();
         if (newTag.textContent.trim()) {
-          startNewTag = true;
+          startNewTag = '';
           newTag.blur();
         }
       }
