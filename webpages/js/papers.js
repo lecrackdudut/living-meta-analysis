@@ -197,75 +197,95 @@
 
   var startNewTag = null;
   var flashTag = null;
-  var fillingTags = false;
 
   function fillPaper(paper) {
     // cleanup
     var oldPaperEl = _.byId('paper');
     if (oldPaperEl) oldPaperEl.parentElement.removeChild(oldPaperEl);
 
-    var paperTemplate = _.byId('paper-template');
-    var paperEl = _.cloneTemplate(paperTemplate);
-    paperTemplate.parentElement.insertBefore(paperEl, paperTemplate);
-
     if (!paper.id) {
       _.addClass('body', 'new');
-      lima.toggleEditing(true, true);
+      lima.toggleEditing(true);
+    } else {
+      _.removeClass('body', 'new');
     }
 
+    var paperTemplate = _.byId('paper-template');
+    var paperEl = _.cloneTemplate(paperTemplate).children[0];
+    paperTemplate.parentElement.insertBefore(paperEl, paperTemplate);
+
     var ownURL = createPageURL(lima.getAuthenticatedUserEmail(), paper.title);
-    _.setProps('#paper .edityourcopy a', 'href', ownURL);
+    _.setProps(paperEl, '.edityourcopy a', 'href', ownURL);
 
-    _.fillEls('#paper .title:not(.unsaved):not(.validationerror)', paper.title);
-    fillingTags = true; // because that causes onBlur on a new tag and that mustn't be a save
-    _.fillTags('#paper .tags', paper.tags, flashTag); flashTag = null;
-    fillingTags = false;
-    _.fillEls ('#paper .authors .value', paper.authors);
-    _.fillEls ('#paper .reference .value', paper.reference);
-    _.fillEls ('#paper .description .value', paper.description);
-    _.fillEls ('#paper .link .value:not(.unsaved):not(.validationerror)', paper.link);
-    _.setProps('#paper .link a.value', 'href', paper.link);
-    _.fillEls ('#paper .doi .value:not(.unsaved):not(.validationerror)', paper.doi);
-    _.setProps('#paper .doi a.value', 'href', function(el){return el.dataset.base + paper.doi});
-    _.fillEls ('#paper .enteredby .value', paper.enteredBy);
-    _.setProps('#paper .enteredby .value', 'href', '/' + paper.enteredBy + '/');
-    _.fillEls ('#paper .ctime .value', _.formatDateTime(paper.ctime));
-    _.fillEls ('#paper .mtime .value', _.formatDateTime(paper.mtime));
+    _.fillEls(paperEl, '.title', paper.title);
+    _.fillEls (paperEl, '.authors .value', paper.authors);
+    _.fillEls (paperEl, '.reference .value', paper.reference);
+    _.fillEls (paperEl, '.description .value', paper.description);
+    _.fillEls (paperEl, '.link .value', paper.link);
+    _.setProps(paperEl, '.link a.value', 'href', paper.link);
+    _.fillEls (paperEl, '.doi .value', paper.doi);
+    _.setProps(paperEl, '.doi a.value', 'href', function(el){return el.dataset.base + paper.doi});
+    _.fillEls (paperEl, '.enteredby .value', paper.enteredBy);
+    _.setProps(paperEl, '.enteredby .value', 'href', '/' + paper.enteredBy + '/');
+    _.fillEls (paperEl, '.ctime .value', _.formatDateTime(paper.ctime));
+    _.fillEls (paperEl, '.mtime .value', _.formatDateTime(paper.mtime));
 
-    _.setDataProps('#paper .enteredby.needs-owner', 'owner', paper.enteredBy);
+    _.setDataProps(paperEl, '.enteredby.needs-owner', 'owner', paper.enteredBy);
 
     addConfirmedUpdater('#paper .link span.editing', '#paper .link button.confirm', '#paper .link button.cancel', 'textContent', identity, paper, 'link');
     addConfirmedUpdater('#paper .doi span.editing', '#paper .doi button.confirm', '#paper .doi button.cancel', 'textContent', identity, paper, 'doi');
 
     // workaround for chrome not focusing right
     // clicking on the placeholder 'doi' of an empty editable doi value focuses the element but doesn't react to subsequent key strokes
-    _.addEventListener('#paper .link .value.editing', 'click', blurAndFocus);
-    _.addEventListener('#paper .doi .value.editing', 'click', blurAndFocus);
+    _.addEventListener(paperEl, '.link .value.editing', 'click', blurAndFocus);
+    _.addEventListener(paperEl, '.doi .value.editing', 'click', blurAndFocus);
 
-    addOnInputUpdater("#paper .authors .value", 'textContent', identity, paper, 'authors');
-    addOnInputUpdater("#paper .reference .value", 'textContent', identity, paper, 'reference');
-    addOnInputUpdater("#paper .description .value", 'textContent', identity, paper, 'description');
+    addOnInputUpdater(paperEl, ".authors .value", 'textContent', identity, paper, 'authors');
+    addOnInputUpdater(paperEl, ".reference .value", 'textContent', identity, paper, 'reference');
+    addOnInputUpdater(paperEl, ".description .value", 'textContent', identity, paper, 'description');
 
     currentPaperOrigTitle = paper.title;
     addConfirmedUpdater('#paper .title.editing', '#paper .title + .titlerename', '#paper .title ~ * .titlerenamecancel', 'textContent', checkPaperTitleUnique, paper, 'title');
 
-    /* editTags
-     *
-     *                         #######
-     *   ###### #####  # #####    #      ##    ####   ####
-     *   #      #    # #   #      #     #  #  #    # #
-     *   #####  #    # #   #      #    #    # #       ####
-     *   #      #    # #   #      #    ###### #  ###      #
-     *   #      #    # #   #      #    #    # #    # #    #
-     *   ###### #####  #   #      #    #    #  ####   ####
-     *
-     *
-     */
-
     if (!paper.tags) paper.tags = [];
 
+    fillTags(paperEl, paper);
+    fillPaperExperimentTable(paper);
+
+    _.setYouOrName();
+
+    // now that the paper is all there, install various general and specific event listeners
+    _.addEventListener(paperEl, '[contenteditable].oneline', 'keydown', blurOnEnter);
+
+    _.addEventListener(paperEl, '.linkedit button.test', 'click', linkEditTest);
+    _.addEventListener(paperEl, '.linkedit button.test', 'mousedown', preventLinkEditBlur);
+
+    _.addEventListener(paperEl, '[data-focuses]', 'click', focusAnotherElementOnClick);
+
+    _.addEventListener(paperEl, '.savingerror', 'click', _.manualSave);
+    _.addEventListener(paperEl, '.validationerrormessage', 'click', focusFirstValidationError);
+    _.addEventListener(paperEl, '.unsavedmessage', 'click', focusFirstUnsaved);
+
+    if (pinnedBox) pinPopupBox(pinnedBox);
+  }
+
+  /* editTags
+   *
+   *                         #######
+   *   ###### #####  # #####    #      ##    ####   ####
+   *   #      #    # #   #      #     #  #  #    # #
+   *   #####  #    # #   #      #    #    # #       ####
+   *   #      #    # #   #      #    ###### #  ###      #
+   *   #      #    # #   #      #    #    # #    # #    #
+   *   ###### #####  #   #      #    #    #  ####   ####
+   *
+   *
+   */
+  function fillTags(paperEl, paper) {
+    _.fillTags(paperEl, '.tags', paper.tags, flashTag); flashTag = null;
+
     // events for removing a tag
-    _.findEls('#paper .tags .tag + .removetag').forEach(function (btn) {
+    _.findEls(paperEl, '.tags .tag + .removetag').forEach(function (btn) {
       btn.onclick = function () {
         // the .tag can be a previous sibling or an ancestor of the button, find it:
         var el = _.findPrecedingEl(btn, '.tag');
@@ -274,7 +294,7 @@
           var i = paper.tags.indexOf(text);
           if (i !== -1) {
             paper.tags.splice(i, 1);
-            updatePaperView();
+            fillTags(paperEl, paper);
             _.scheduleSave(paper);
           } else {
             console.error('removing tag but can\'t find it: ' + text);
@@ -283,96 +303,56 @@
       }
     })
     // events for starting to add a tag
-    _.findEls('#paper .tags .new + .addtag').forEach(function (btn) {
-      btn.onclick = function () {
-        var el = btn.previousElementSibling;
-        el.classList.add('editing');
-        _.findEl(el, '.tag').focus();
-      }
-      if (startNewTag !== null) {
-        btn.onclick();
-        var el = _.findEl('#paper .tags .new .tag');
-        el.textContent = startNewTag;
-        if (startNewTag) {
-          // put cursor at the end of the text
-          var selection = window.getSelection();
-          var range = document.createRange();
-          range.setStartAfter(el.childNodes[el.childNodes.length-1]);
-          range.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-        startNewTag = null;
-      }
-    })
+    var btn = _.findEl(paperEl, '.tags .new + .addtag');
+    var newTagContainer = _.findEl(paperEl, '.tags .new');
+    var newTag = _.findEl(paperEl, '.tags .new .tag');
+
+    btn.onclick = function () {
+      newTagContainer.classList.add('editing');
+      newTag.focus();
+    }
+    if (startNewTag) {
+      btn.onclick();
+      startNewTag = false;
+    }
+
     // events for adding a tag
-    _.findEls('#paper .tags .new .tag').forEach(function (el) {
-      el.onblur = function () {
-        if (fillingTags) {
-          startNewTag = el.textContent;
-          return;
+    newTag.onblur = function () {
+      var text = newTag.textContent.trim();
+      if (!text) {
+        newTagContainer.classList.remove('editing');
+      } else {
+        if (paper.tags.indexOf(text) === -1) {
+          paper.tags.push(text);
+          _.scheduleSave(paper);
         }
-        var text = el.textContent;
-        if (!text) {
-          if (startNewTag !== null) {
-            setTimeout(function() {el.focus()}, 0); // focus() inside the blur event may not work
-            el.textContent = startNewTag;
-            startNewTag = null;
-          } else {
-            _.removeClass('#paper .tags .new', 'editing');
-          }
-        } else {
-          var add = paper.tags.indexOf(text) === -1;
-          if (add) {
-            paper.tags.push(text);
-          }
-          flashTag = text;
-          updatePaperView();
-          if (add) {
-            _.scheduleSave(paper);
-          }
+        flashTag = text;
+        fillTags(paperEl, paper);
+      }
+    }
+    newTag.onkeydown = function (ev) {
+      _.deferScheduledSave();
+      // enter
+      if (ev.keyCode === 13 && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+        startNewTag = false;
+        ev.preventDefault();
+        newTag.blur();
+      }
+      // escape
+      else if (ev.keyCode === 27) {
+        startNewTag = false;
+        newTagContainer.classList.remove('editing');
+        newTag.textContent = '';
+      }
+      // tab or comma starts a new tag
+      else if ((ev.keyCode === 9 || ev.keyCode === 188) && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+        ev.preventDefault();
+        if (newTag.textContent.trim()) {
+          startNewTag = true;
+          newTag.blur();
         }
       }
-      el.onkeydown = function (ev) {
-        // enter
-        if (ev.keyCode === 13 && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
-          startNewTag = null;
-          ev.preventDefault();
-          el.blur();
-        }
-        // escape
-        else if (ev.keyCode === 27) {
-          startNewTag = null;
-          _.removeClass('#paper .tags .new', 'editing');
-          el.textContent = '';
-        }
-        // tab or comma starts a new tag
-        else if ((ev.keyCode === 9 || ev.keyCode === 188) && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
-          startNewTag = '';
-          ev.preventDefault();
-          el.blur();
-        }
-        else _.deferScheduledSave();
-      }
-    })
-
-    fillPaperExperimentTable(paper);
-
-    _.setYouOrName();
-
-    // now that the paper is all there, install various general and specific event listeners
-    _.addEventListener('[contenteditable].oneline', 'keydown', blurOnEnter);
-
-    _.addEventListener('#paper .linkedit button.test', 'click', linkEditTest);
-    _.addEventListener('#paper .linkedit button.test', 'mousedown', preventLinkEditBlur);
-
-    _.addEventListener('#paper [data-focuses]', 'click', focusAnotherElementOnClick);
-
-    _.addEventListener('#paper .savingerror', 'click', _.manualSave);
-    _.addEventListener('#paper .validationerrormessage', 'click', focusFirstValidationError);
-    _.addEventListener('#paper .unsavedmessage', 'click', focusFirstUnsaved);
-
-    if (pinnedBox) pinPopupBox(pinnedBox);
+    }
   }
 
   function fillPaperExperimentTable(paper) {
@@ -1546,7 +1526,6 @@
   lima.getDeepValue = getDeepValue;
   lima.getPaperTitles = function(){return paperTitles;};
   lima.getCurrentPaper = function(){return currentPaper;};
-  lima.findColumnsInPaper = findColumnsInPaper;
   lima.savePendingMax = 0;
 
 
