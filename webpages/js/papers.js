@@ -1134,8 +1134,6 @@
 
     _.findEls(root, selector).forEach(function (el) {
       if (el.classList.contains('editing') || el.isContentEditable || el.contentEditable === 'true') {
-        el.classList.remove('validationerror');
-        setValidationErrorClass();
         el.addEventListener('keydown', _.deferScheduledSave);
         el.oninput = function () {
           var value = el[property];
@@ -1143,15 +1141,15 @@
           try {
             if (validatorSanitizer) value = validatorSanitizer(value, el, property);
           } catch (err) {
-            // this class will be removed by updatePaperView when validation succeeds again
             el.classList.add('validationerror');
             el.dataset.validationmessage = err.message || err;
             setValidationErrorClass();
             _.cancelScheduledSave(target);
             return;
           }
+          el.classList.remove('validationerror');
+          setValidationErrorClass();
           assignDeepValue(target, targetProp, value);
-          updatePaperView();
           _.scheduleSave(target);
         };
       } else {
@@ -1198,9 +1196,9 @@
         if (validatorSanitizer) value = validatorSanitizer(value, editingEl, property);
       } catch (err) {
         editingEl.classList.add('validationerror');
-        confirmEl.disabled = true;
         editingEl.dataset.validationmessage = err && err.message || err || '';
         setValidationErrorClass();
+        confirmEl.disabled = true;
         _.cancelScheduledSave(target);
         return;
       }
