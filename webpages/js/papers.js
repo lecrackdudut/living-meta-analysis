@@ -423,10 +423,6 @@
 
       addConfirmedUpdater(th, '.coltitle.editing', '.coltitle ~ .coltitlerename', '.coltitle ~ * .colrenamecancel', 'textContent', checkColTitle, col, 'title', deleteNewColumn);
 
-      lima.columnTypes.forEach(function (type) {
-        _.setDataProps(th, '.coltype .switch.type-' + type, 'newType', type);
-      });
-
       setupPopupBoxPinning(th, '.fullcolinfo.popupbox', col.id);
 
       _.addEventListener(th, '.coltype .switch', 'click', changeColumnType);
