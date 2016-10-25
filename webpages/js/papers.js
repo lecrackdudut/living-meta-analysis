@@ -109,7 +109,7 @@
     var title = lima.extractPaperTitleFromUrl();
     _.fillEls('#paper .title', title);
 
-    lima.getColumns() // todo getColumns could run in parallel with everything before fillPaper
+    lima.getColumns() // todo getColumns could run in parallel with everything before updatePaperView
     .then(lima.getGapiIDToken)
     .then(function (idToken) {
       currentPaperUrl = '/api/papers/' + email + '/' + title;
