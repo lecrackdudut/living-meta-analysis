@@ -241,9 +241,8 @@
     // events for removing a tag
     _.findEls('#paper .tags .tag + .removetag').forEach(function (btn) {
       btn.onclick = function () {
-        var el = btn;
-        while (el && !el.classList.contains('tag')) el = el.previousElementSibling;
-        while (el && !el.classList.contains('tag')) el = el.parentElement;
+        // the .tag can be a previous sibling or an ancestor of the button, find it:
+        var el = _.findPrecedingEl(btn, '.tag');
         if (el) {
           var text = el.textContent;
           var i = paper.tags.indexOf(text);
@@ -1094,8 +1093,7 @@
     var newTypeEl = ev.target;
 
     // find the element with the class 'coltype' before the button
-    var coltypeEl = newTypeEl;
-    while (coltypeEl && !coltypeEl.classList.contains('coltype')) coltypeEl = coltypeEl.previousElementSibling || coltypeEl.parentElement;
+    var coltypeEl = _.findPrecedingEl(newTypeEl, '.coltype');
 
     if (!coltypeEl) {
       console.warn('changeColumnType called on a button before which there is no .coltype');
@@ -1127,8 +1125,7 @@
 
   function doChangeColumnTypeConfirmOrCancel(btn) {
     // find the element with the class 'coltype' before the button
-    var coltypeEl = btn;
-    while (coltypeEl && !coltypeEl.classList.contains('coltype')) coltypeEl = coltypeEl.previousElementSibling || coltypeEl.parentElement;
+    var coltypeEl = _.findPrecedingEl(btn, '.coltype');
 
     if (!coltypeEl) {
       console.warn('changeColumnTypeConfirmOrCancel called on a button before which there is no .coltype');
