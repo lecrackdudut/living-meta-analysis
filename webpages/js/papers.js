@@ -445,7 +445,7 @@
         th.classList.add('newcol');
         _.addClass(th, '.coltype', 'newcol');
         _.setDataProps(th, '.coltype', 'id', col.id);
-        _.addClass(th, '.coltitle.editing:not(.unsaved):not(.validationerror)', 'new');
+        _.addClass(th, '.coltitle.editing', 'new');
         // todo move the confirm/rename difference into html, but that means we have multiple confirm buttons and addConfirmedUpdater might be unhappy
         _.fillEls(th, '.coltitle + .coltitlerename', 'confirm');
       }
@@ -476,15 +476,16 @@
     // fill rows with experiment data
     var tableBodyNode = _.findEl(table, 'tbody');
     var addRowNode = _.findEl(table, 'tbody > tr.add');
+
     experiments.forEach(function (experiment, expIndex) {
       var tr = _.cloneTemplate('experiment-row-template').children[0];
       tableBodyNode.insertBefore(tr, addRowNode);
 
-      _.fillEls(tr, '.exptitle:not(.unsaved):not(.validationerror)', experiment.title);
+      _.fillEls(tr, '.exptitle', experiment.title);
       _.fillEls(tr, '.expdescription', experiment.description);
 
       if (!experiment.title) {
-        _.addClass(tr, '.exptitle.editing:not(.unsaved):not(.validationerror)', 'new');
+        _.addClass(tr, '.exptitle.editing', 'new');
         _.fillEls(tr, '.exptitle + .exptitlerename', 'confirm');
       } else {
         _.fillEls(tr, '.exptitle + .exptitlerename', 'rename');
@@ -509,9 +510,10 @@
 
         if (!val || val.value == null) {
           td.classList.add('empty');
+        } else {
+          _.fillEls(td, '.value', val.value);
         }
 
-        _.fillEls(td, '.value', val && val.value || '');
         addOnInputUpdater(td, '.value', 'textContent', identity, paper, ['experiments', expIndex, 'data', colId, 'value']);
 
         var user = lima.getAuthenticatedUserEmail();
@@ -521,33 +523,16 @@
 
         td.classList.add(col.type);
 
-        setupPopupBoxPinning(td, '.datum.popupbox', expIndex + '$' + colId);
-
-        // populate comments
-        var comments = [];
-        if (experiment.data && experiment.data[colId]) {
-          comments = experiment.data[colId].comments || [];
-        }
-
-        if (comments.length > 0) {
-          td.classList.add('hascomments');
-        }
-
         if (col.new) {
           td.classList.add('newcol');
         }
-        _.fillEls(td, '.commentcount', comments.length);
 
-        fillComments('comment-template', td, '.datum.popupbox main', paper, ['experiments', expIndex, 'data', colId, 'comments']);
+        setupPopupBoxPinning(td, '.datum.popupbox', expIndex + '$' + colId);
+
+
+        // populate comments
+        fillComments('comment-template', td, '.commentcount', '.datum.popupbox main', paper, ['experiments', expIndex, 'data', colId, 'comments']);
       });
-    });
-
-    // fill in the empty last row of the table
-    paper.columnOrder.forEach(function (colId) {
-      var td = document.createElement('td');
-      addRowNode.appendChild(td);
-
-      td.classList.add(lima.columns[colId].type);
     });
 
     _.addEventListener(table, 'tr.add button.add', 'click', addExperimentRow);
@@ -794,29 +779,38 @@
    *
    */
 
-  function fillComments(templateId, root, selector, paper, commentsPropPath) {
-    var targetEl = _.findEl(root, selector);
-    targetEl.innerHTML = '';
-    var oldComments = getDeepValue(paper, commentsPropPath) || [];
-    for (var index = 0; index < oldComments.length; index++) {
+  function fillComments(templateId, root, countSelector, textSelector, paper, commentsPropPath) {
+    var comments = getDeepValue(paper, commentsPropPath) || [];
+
+    if (comments.length > 0) {
+      root.classList.add('hascomments');
+    }
+    _.fillEls(root, countSelector, comments.length);
+
+    var user = lima.getAuthenticatedUserEmail();
+
+    var textTargetEl = _.findEl(root, textSelector);
+    textTargetEl.innerHTML = '';
+
+    for (var i = 0; i < comments.length; i++) {
       var el = _.cloneTemplate(templateId).children[0];
-      var user = lima.getAuthenticatedUserEmail();
-      var comments = getDeepValue(paper, commentsPropPath);
-      var comment = comments[index];
-      if (index === comments.length - 1) {
-        _.setDataProps(el, '.needs-owner', 'owner', comment.by);
+
+      var comment = comments[i];
+      if (i === comments.length - 1) {
+        _.setDataProps(el, '.needs-owner', 'owner', comment.by || user);
       } else {
         // this will disable editing of any comment but the last
         _.setDataProps(el, '.needs-owner', 'owner', '');
       }
-      _.fillEls(el, '.commentnumber', index+1);
+
+      _.fillEls(el, '.commentnumber', i+1);
       _.fillEls(el, '.by', comment.by || user);
       _.setProps(el, '.by', 'href', '/' + (comment.by || user) + '/');
       _.fillEls(el, '.ctime', _.formatDateTime(comment.ctime || Date.now()));
       _.fillEls(el, '.text', comment.text);
 
-      addOnInputUpdater(el, '.text', 'textContent', identity, paper, commentsPropPath.concat(index, 'text'));
-      targetEl.appendChild(el);
+      addOnInputUpdater(el, '.text', 'textContent', identity, paper, commentsPropPath.concat(i, 'text'));
+      textTargetEl.appendChild(el);
     }
 
     // events for adding a comment
@@ -827,7 +821,8 @@
         if (text.trim()) {
           var comments = getDeepValue(paper, commentsPropPath, []);
           comments.push({ text: text });
-          updatePaperView();
+          fillComments(templateId, root, countSelector, textSelector, paper, commentsPropPath);
+          _.setYouOrName(); // the new comment needs to be marked as "yours" so you can edit it
           _.scheduleSave(paper);
         }
       }
