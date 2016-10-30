@@ -270,6 +270,9 @@
     _.addEventListener(paperEl, '.unsavedmessage', 'click', focusFirstUnsaved);
 
     if (pinnedBox) pinPopupBox(pinnedBox);
+
+    setValidationErrorClass();
+    setUnsavedClass();
   }
 
   /* editTags
@@ -1210,7 +1213,7 @@
       throw _.apiFail();
     }
 
-    editingEl.oninput = editingEl.onblur = function () {
+    editingEl.oninput = editingEl.onblur = function (ev) {
       var value = editingEl[property];
       if (typeof value === 'string' && value.trim() === '') value = '';
       try {
@@ -1218,13 +1221,11 @@
       } catch (err) {
         editingEl.classList.add('validationerror');
         editingEl.dataset.validationmessage = err && err.message || err || '';
-        setValidationErrorClass();
+        if (ev) setValidationErrorClass();
         confirmEl.disabled = true;
         _.cancelScheduledSave(target);
         return;
       }
-      editingEl.classList.remove('validationerror');
-      setValidationErrorClass();
       var origValue = getDeepValue(target, targetProp) || '';
       if (value !== origValue) {
         confirmEl.disabled = false;
@@ -1233,7 +1234,14 @@
         confirmEl.disabled = true;
         editingEl.classList.remove('unsaved');
       }
-      setUnsavedClass();
+      editingEl.classList.remove('validationerror');
+
+      // the following calls are expensive and unnecessary when building the dom
+      // but when building the dom, we don't have `ev`
+      if (ev) {
+        setValidationErrorClass();
+        setUnsavedClass();
+      }
     };
 
     editingEl.oninput();
