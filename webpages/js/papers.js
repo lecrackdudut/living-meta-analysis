@@ -217,6 +217,9 @@
     var paperEl = _.cloneTemplate(paperTemplate).children[0];
     paperTemplate.parentElement.insertBefore(paperEl, paperTemplate);
 
+    fillTags(paperEl, paper);
+    fillPaperExperimentTable(paper);
+
     var ownURL = createPageURL(lima.getAuthenticatedUserEmail(), paper.title);
     _.setProps(paperEl, '.edityourcopy a', 'href', ownURL);
 
@@ -251,9 +254,6 @@
     addConfirmedUpdater('#paper .title.editing', '#paper .title + .titlerename', '#paper .title ~ * .titlerenamecancel', 'textContent', checkPaperTitleUnique, paper, 'title');
 
     if (!paper.tags) paper.tags = [];
-
-    fillTags(paperEl, paper);
-    fillPaperExperimentTable(paper);
 
     _.setYouOrName();
 
