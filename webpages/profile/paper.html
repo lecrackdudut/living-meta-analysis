@@ -206,6 +206,17 @@
       </header>
       <p class="coldescription notediting-or-not-yours needs-owner">error</p>
       <p class="coldescription editing only-if-yours needs-owner" contenteditable placeholder="add column description">error</p>
+      <label class="editing only-if-yours needs-owner"><input type="checkbox" class="colcomputed">Show options for computed column</label>
+      <!-- todo FIXME when not editing or not owner, the stuff below should look different -->
+      <div class="colcomputedcolumns option-not-checked">
+        <select class="colformulas">
+          <option value=''>Select formula</option>
+          <!-- gets populated in the code, in which case the option above goes away -->
+        </select>
+        <div class="colcomputedcolumnsselection">
+          <!-- gets populated in the code -->
+        </div>
+      </div>
       <!-- on hiding this column, store in localStorage that this column is being hidden,
       also add to the end of every row a symbol that there are hidden values,
       on hover, the symbol will list them and allow you to add some right back -->
@@ -312,6 +323,7 @@
 <script src="/js/auth.js"></script>
 <script src="/js/userprofile.js"></script>
 <script src="/js/columns.js"></script>
+<script src="/js/formulas.js"></script>
 <script src="/js/papers.js"></script>
 <script src="/js/version.js"></script>
 <script>

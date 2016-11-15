@@ -458,6 +458,45 @@
 
       _.addEventListener(th, '.coltype .switch', 'click', changeColumnType);
       _.addEventListener(th, '.coltypeconfirm button', 'click', changeColumnTypeConfirmOrCancel);
+
+      // Computed columns
+      var computedColumnsOptionsEl = _.findEl(th, '.colcomputedcolumns');
+      if (col.formula) {
+        // If we have anything re. computed columns, show the further options
+        _.setProps(th, '.colcomputed', 'checked', 1);
+        computedColumnsOptionsEl.classList.remove('option-not-checked');
+      }
+
+      _.addEventListener(th, '.colcomputed', 'click', function (e) {
+        var checked = e.target.checked;
+        if (checked) {
+          computedColumnsOptionsEl.classList.remove('option-not-checked');
+        } else {
+          computedColumnsOptionsEl.classList.add('option-not-checked');
+        }
+      });
+
+      // Add an option for every formula we know
+      var formulas = lima.listFormulas();
+      var formulasDropdown = _.findEl(th, 'select.colformulas')
+      for (var i = 0; i < formulas.length; i++){
+        var el = document.createElement("option");
+        el.textContent = formulas[i].label;
+        el.value = formulas[i].id;
+        if (col.formula === el.value) el.selected = true;
+        formulasDropdown.appendChild(el);
+      }
+
+      // react to changes in the selection of formula
+      formulasDropdown.onchange = function(e) {
+        col.formula = e.target.value;
+        if (col.formula) fillComputedColumnsSelection(paper, col, _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection'), col.formula);
+        _.scheduleSave(col);
+        recalculateComputedColumns();
+      };
+
+      // if we already have a formula, fill the columns selection
+      if (col.formula) fillComputedColumnsSelection(paper, col, _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection'), col.formula);
     });
 
     /* experiment rows
@@ -543,6 +582,69 @@
 
     var experimentsContainer = _.findEl('#paper .experiments');
     experimentsContainer.appendChild(table);
+  }
+
+  function fillComputedColumnsSelection(paper, col, wrapperEl, formulaId) {
+    // clear out old children.
+    wrapperEl.innerHTML = '';
+
+    var formula = lima.getFormulaById(formulaId);
+    if (!formula) return;
+
+    var noOfParams = formula.parameters.length;
+
+    // make sure computed columns array matches the number of expected parameters
+    if (!Array.isArray(col.computedColumns)) col.computedColumns = [];
+    col.computedColumns.length = noOfParams;
+
+    for (var i = 0; i < noOfParams; i++){
+      // Make a select dropdown
+      var label = document.createElement('label');
+      label.textContent = formula.parameters[i] + ': ';
+      wrapperEl.appendChild(label);
+
+      var select = document.createElement("select");
+      label.appendChild(select);
+
+      // listen to changes of the dropdown box
+      // preserve the value of i inside this code
+      (function(i){
+        select.onchange = function(e) {
+          col.computedColumns[i] = e.target.value;
+          _.scheduleSave(col);
+          recalculateComputedColumns();
+        };
+      })(i);
+
+      // the first option is an instruction
+      var op = document.createElement("option");
+      op.textContent = 'Select a column';
+      op.value = '';
+      select.appendChild(op);
+
+      // Now make an option for each column in paper
+      for (var j = 0; j < paper.columnOrder.length; j++){
+        var colId = paper.columnOrder[j];
+
+        // the current computed column should not be an option here
+        if (colId === col.id) continue;
+
+        var el = document.createElement("option");
+        el.textContent = lima.columns[colId].title;
+        el.value = colId;
+        if (col.computedColumns[i] === el.value) {
+          el.selected = true;
+        }
+        select.appendChild(el);
+      }
+    }
+  }
+
+  function recalculateComputedColumns() {
+    // TODO this one is gonna be interesting
+    // when building the dom, we'll want to save a list of functions that update every given computed cell
+    // order the list above so that computed columns that use computed columns come later
+    // here we'll just run all those functions
   }
 
   /* adding cols
