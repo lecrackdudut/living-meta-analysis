@@ -300,6 +300,27 @@
     </div>
   </td>
 </template>
+<!-- TODO needs to be checked -->
+<template id="experiment-computed-datum-template">
+  <td class="popupboxtrigger popupboxhighlight">
+    <span class="value"></span> <!-- TESTME that this shows correct -->
+    <div class="datum popupbox" data-boxtype='datumpopupbox'>
+      <div class="pin"></div>
+      <header>
+        <p class="value" placeholder="no value"></p>
+        <!-- TODO: Computed from column x & column y -->
+        <p><span class="commentcount"></span> comments:</p>
+      </header>
+      <main><!-- this is where the comments will come --></main>
+      <div class="comment new when-signed-on">
+        <header>
+          new comment:
+        </header>
+        <p><span class="text" contenteditable placeholder="enter a new comment"></span><button class="add">add comment</button></p>
+      </div>
+    </div>
+  </td>
+</template>
 <template id="comment-template">
   <div class="comment">
     <header>
