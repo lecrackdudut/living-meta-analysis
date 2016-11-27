@@ -1,8 +1,7 @@
-(function (window, document) {
+(function (window, document) { // eslint-disable-line no-unused-vars
   'use strict';
 
   var lima = window.lima;
-  var _ = lima._;
 
   lima.listFormulas = function listFormulas() {
     // at some point, the api might want to host a list of formulas with their definitions
@@ -24,7 +23,7 @@
 
   function isNumber(val) {
     return typeof val === 'number' && !isNaN(val);
-  };
+  }
 
   lima.getFormulaById = function getFormulaById(id) {
     var formulas = lima.listFormulas();
