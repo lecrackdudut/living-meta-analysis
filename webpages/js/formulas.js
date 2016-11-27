@@ -4,7 +4,7 @@
   var lima = window.lima;
 
   lima.listFormulas = function listFormulas() {
-    // at some point, the api might want to host a list of formulas with their definitions
+    // at some point, the server api might want to host a list of formulas with their definitions
     return [
       {
         id: 'logOddsRatio',
@@ -21,8 +21,13 @@
     ];
   }
 
-  function isNumber(val) {
-    return typeof val === 'number' && !isNaN(val);
+  function strictToNumber(val) {
+    if (typeof val == 'number') return val;
+    if (typeof val == 'string') {
+      if (val == '') return NaN;
+      else return Number(val);
+    }
+    return NaN;
   }
 
   lima.getFormulaById = function getFormulaById(id) {
@@ -37,18 +42,15 @@
 
   function logOddsRatio (experimental, control) {
     // validate the input
-    if (!isNumber(experimental) || !isNumber(control)) return null;
+    experimental = strictToNumber(experimental);
+    control = strictToNumber(control);
 
     // perform the calculation
-    try {
-      return Math.log((control/(1-control))/(experimental/(1-experimental)));
-    }
-    catch (err) {
-      return null;
-    }
+    // may return NaN or infinities
+    return Math.log((control/(1-control))/(experimental/(1-experimental)));
   }
 
   function logOddsRatioPercent (experimental, control) {
-    return lima.formulas.logOddsRatio(experimental/100, control/100);
+    return logOddsRatio(strictToNumber(experimental)/100, strictToNumber(control)/100);
   }
 })(window, document);
