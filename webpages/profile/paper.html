@@ -274,40 +274,21 @@
   </tr>
 </template>
 <template id="experiment-datum-template">
-  <td class="popupboxtrigger popupboxhighlight">
-    <span class="value notediting"></span>
-    <span class="value editing oneline" contenteditable></span>
-    <span class="newcol" title="cannot add values/comments for a new column until the column is saved with a title and a type"> </span>
+  <td class="datum popupboxtrigger popupboxhighlight">
+    <span class="value notcomputed notediting"></span>
+    <span class="value computed"></span>
+    <span class="value notcomputed editing oneline" contenteditable></span>
+    <span class="notcomputed newcol" title="cannot add values/comments for a new column until the column is saved with a title and a type"> </span>
     <div class="datum popupbox" data-boxtype='datumpopupbox'>
       <div class="pin"></div>
       <header>
         <p class="value" placeholder="no value"></p>
-        <p class="by">
+        <p class="by notcomputed">
           entered on
           <span class="valctime date">error</span>
           by
           <a class="valenteredby" href="error">error</a>
         </p>
-        <p><span class="commentcount"></span> comments:</p>
-      </header>
-      <main><!-- this is where the comments will come --></main>
-      <div class="comment new when-signed-on">
-        <header>
-          new comment:
-        </header>
-        <p><span class="text" contenteditable placeholder="enter a new comment"></span><button class="add">add comment</button></p>
-      </div>
-    </div>
-  </td>
-</template>
-<!-- TODO needs to be checked -->
-<template id="experiment-computed-datum-template">
-  <td class="popupboxtrigger popupboxhighlight">
-    <span class="value"></span> <!-- TESTME that this shows correct -->
-    <div class="datum popupbox" data-boxtype='datumpopupbox'>
-      <div class="pin"></div>
-      <header>
-        <p class="value" placeholder="no value"></p>
         <!-- TODO: Computed from column x & column y -->
         <p><span class="commentcount"></span> comments:</p>
       </header>

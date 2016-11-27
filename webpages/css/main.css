@@ -1528,6 +1528,11 @@ body:not(.page-about-you) #paper.no-data table.experiments {
   display: block;
 }
 
+#paper td.datum.computed .notcomputed,
+#paper td.datum:not(.computed) .computed {
+  display: none;
+}
+
 /* validation
  *
  *
