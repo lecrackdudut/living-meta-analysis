@@ -539,26 +539,69 @@
 
       paper.columnOrder.forEach(function (colId) {
         var col = lima.columns[colId];
+        var val = null;
         var td = _.cloneTemplate('experiment-datum-template').children[0];
         tr.appendChild(td);
 
-        var val = null;
-        if (experiment.data && experiment.data[colId]) {
-          val = experiment.data[colId];
-        }
+        if (!col.formula) {
+          // not a computed column
+          if (experiment.data && experiment.data[colId]) {
+            val = experiment.data[colId];
+          }
 
-        if (!val || val.value == null) {
-          td.classList.add('empty');
+          if (!val || val.value == null) {
+            td.classList.add('empty');
+          } else {
+            _.fillEls(td, '.value', val.value);
+          }
+
+          addOnInputUpdater(td, '.value', 'textContent', identity, paper, ['experiments', expIndex, 'data', colId, 'value']);
+
+          var user = lima.getAuthenticatedUserEmail();
+          _.fillEls (td, '.valenteredby', val && val.enteredBy || user);
+          _.setProps(td, '.valenteredby', 'href', '/' + (val && val.enteredBy || user) + '/');
+          _.fillEls (td, '.valctime', _.formatDateTime(val && val.ctime || Date.now()));
+
         } else {
-          _.fillEls(td, '.value', val.value);
+          // computed column
+          td.classList.add('computed');
+          // todo computed from x and y
+
+          var formula = lima.getFormulaById(col.formula);
+          var inputs = [];
+          var inputsEmpty = false; // if any input is an empty string, null, or not even there, this will be true
+
+          try {
+            // compute the value
+            // if anything here throws an exception, value cannot be computed
+            for (var i=0; i<col.computedColumns.length; i++) {
+              var input = null;
+              if (experiment.data &&
+                  experiment.data[col.computedColumns[i]] &&
+                  experiment.data[col.computedColumns[i]].value != null) {
+                input = experiment.data[col.computedColumns[i]].value;
+              }
+              inputs.push(input);
+              if (input == null || input === '') inputsEmpty = true;
+            }
+            console.log(inputs);
+            val = formula.func.apply(null, inputs);
+          } catch (e) {
+            val = null;
+            console.error('error computing value for experiment ' + expIndex + ' and col ' + colId, e);
+          }
+
+          // handle bad values like Excel
+          if (val == null || isNaN(val)) {
+            val = inputsEmpty ? '' : '#VALUE!';
+            td.classList.add('empty');
+          }
+
+          // only show three significant digits for numbers
+          if (typeof val == 'number') val = val.toPrecision(3);
+
+          _.fillEls(td, '.value', val);
         }
-
-        addOnInputUpdater(td, '.value', 'textContent', identity, paper, ['experiments', expIndex, 'data', colId, 'value']);
-
-        var user = lima.getAuthenticatedUserEmail();
-        _.fillEls (td, '.valenteredby', val && val.enteredBy || user);
-        _.setProps(td, '.valenteredby', 'href', '/' + (val && val.enteredBy || user) + '/');
-        _.fillEls (td, '.valctime', _.formatDateTime(val && val.ctime || Date.now()));
 
         td.classList.add(col.type);
 
