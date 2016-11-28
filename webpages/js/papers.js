@@ -496,7 +496,7 @@
         col.formula = e.target.value;
         if (col.formula) fillComputedColumnsSelection(paper, col, _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection'), col.formula);
         _.scheduleSave(col);
-        recalculateComputedData(true);
+        recalculateComputedData();
       };
 
       // if we already have a formula, fill the columns selection
@@ -571,35 +571,15 @@
           td.classList.add('computed');
           // todo computed from x and y
 
-          var formula = lima.getFormulaById(col.formula);
-
-          addComputedDatum(col, function() {
-
-            var inputs = [];
-            var inputsEmpty = false; // if any input is an empty string, null, or not even there, this will be true
-
-            try {
-              // compute the value
-              // if anything here throws an exception, value cannot be computed
-              for (var i=0; i<col.computedColumns.length; i++) {
-                var input = null;
-                if (experiment.data &&
-                    experiment.data[col.computedColumns[i]] &&
-                    experiment.data[col.computedColumns[i]].value != null) {
-                  input = experiment.data[col.computedColumns[i]].value;
-                }
-                inputs.push(input);
-                if (input == null || input === '') inputsEmpty = true;
-              }
-              val = formula.func.apply(null, inputs);
-            } catch (e) {
-              val = null;
-              console.error('error computing value for experiment ' + expIndex + ' and col ' + colId, e);
-            }
+          addComputedDatumSetter(function() {
+            var val = getDatumValue(colId, expIndex);
 
             // handle bad values like Excel
-            if (val == null || isNaN(val)) {
-              val = inputsEmpty ? '' : '#VALUE!';
+            if (val == null) {
+              val = '';
+              td.classList.add('empty');
+            } else if (typeof val == 'number' && isNaN(val)) {
+              val = '#VALUE!';
               td.classList.add('empty');
             } else {
               td.classList.remove('empty');
@@ -664,7 +644,7 @@
         select.onchange = function(e) {
           col.computedColumns[i] = e.target.value;
           _.scheduleSave(col);
-          recalculateComputedData(true);
+          recalculateComputedData();
         };
       })(i);
 
@@ -704,26 +684,67 @@
    *
    *
    */
-  var computedData;
+  var computedDataSetters;
+  var computedDataCache = {};
+  var CIRCULAR_COMPUTATION_FLAG = {message: 'uncaught circular computation!'};
 
   function resetComputedData() {
-    computedData = [];
-    computedData.ordered = false;
+    computedDataSetters = [];
   }
 
   // when building the dom, we save a list of functions that update every given computed cell
-  function addComputedDatum(col, f) {
-    computedData.push({col: col, f: f});
+  function addComputedDatumSetter(f) {
+    computedDataSetters.push(f);
   }
 
-  function recalculateComputedData(forceSort) {
-    // order the list of computed-column-calculating functions
-    // so that computed columns that use computed columns come later
-    if (!computedData.ordered || forceSort) {
-      // // for every computed column, count the number of computed columns it depends on
+  function recalculateComputedData() {
+    // clear computation cache
+    computedDataCache = {};
+    // call all the calculation functions
+    computedDataSetters.forEach(function (f) { f(); });
+  }
+
+  function getDatumValue(colId, expIndex) {
+    // check cache
+    if (!(colId in computedDataCache)) computedDataCache[colId] = [];
+    if (expIndex in computedDataCache[colId]) {
+      if (computedDataCache[colId][expIndex] === CIRCULAR_COMPUTATION_FLAG) {
+        throw new Error('circular computation involving col ' + colId);
+      }
+      return computedDataCache[colId][expIndex];
     }
-    // now call all the calculation functions
-    computedData.forEach(function (record) { record.f(); });
+
+    computedDataCache[colId][expIndex] = CIRCULAR_COMPUTATION_FLAG;
+
+    var col = lima.columns[colId];
+    var val = null;
+    if (!col.formula) {
+      // not a computed column
+      if (currentPaper.experiments[expIndex] &&
+          currentPaper.experiments[expIndex].data &&
+          currentPaper.experiments[expIndex].data[colId] &&
+          currentPaper.experiments[expIndex].data[colId].value != null) {
+        val = currentPaper.experiments[expIndex].data[colId].value;
+      }
+    } else {
+      // computed column
+      var inputs = [];
+      var formula = lima.getFormulaById(col.formula);
+
+      // compute the value
+      // if anything here throws an exception, value cannot be computed
+      for (var i=0; i<col.computedColumns.length; i++) {
+        inputs.push(getDatumValue(col.computedColumns[i], expIndex));
+      }
+      val = formula.func.apply(null, inputs);
+      if (typeof val == 'number' && isNaN(val)) {
+        // if the result is NaN but some of the inputs were empty, change the result to empty.
+        if (inputs.some(function (x) { return x == null || x === ''; })) val = null;
+      }
+    }
+
+    computedDataCache[colId][expIndex] = val;
+    return val;
   }
 
   /* adding cols
