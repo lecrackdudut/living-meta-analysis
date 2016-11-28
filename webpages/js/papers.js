@@ -437,8 +437,6 @@
       _.fillEls(th, '.definedby .value', col.definedBy || user);
       _.setProps(th, '.definedby .value', 'href', '/' + (col.definedBy || user) + '/');
 
-      _.setDataProps(th, '.needs-owner', 'owner', col.definedBy || user);
-
       _.addEventListener(th, 'button.move', 'click', moveColumn);
       _.setDataProps(th, 'button', 'id', col.id);
 
@@ -480,6 +478,10 @@
         }
       });
 
+      // fill in the current formula
+      var formula = lima.getFormulaById(col.formula);
+      if (formula) _.fillEls(computedColumnsOptionsEl, '.colformula', formula.label);
+
       // Add an option for every formula we know
       var formulas = lima.listFormulas();
       var formulasDropdown = _.findEl(th, 'select.colformulas')
@@ -494,13 +496,22 @@
       // react to changes in the selection of formula
       formulasDropdown.onchange = function(e) {
         col.formula = e.target.value;
-        if (col.formula) fillComputedColumnsSelection(paper, col, _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection'), col.formula);
+
+        var formula = lima.getFormulaById(col.formula);
+        if (formula) {
+          // fill in the current formula
+          _.fillEls(computedColumnsOptionsEl, '.colformula', formula.label);
+          // fill the columns selection
+          fillComputedColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
+        }
         _.scheduleSave(col);
         recalculateComputedData();
       };
 
       // if we already have a formula, fill the columns selection
-      if (col.formula) fillComputedColumnsSelection(paper, col, _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection'), col.formula);
+      if (formula) fillComputedColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
+
+      _.setDataProps(th, '.needs-owner', 'owner', col.definedBy || user);
     });
 
     /* experiment rows
@@ -616,11 +627,12 @@
     experimentsContainer.appendChild(table);
   }
 
-  function fillComputedColumnsSelection(paper, col, wrapperEl, formulaId) {
+  function fillComputedColumnsSelection(paper, col, computedColumnsOptionsEl, formula) {
+    var wrapperEl = _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection');
+
     // clear out old children.
     wrapperEl.innerHTML = '';
 
-    var formula = lima.getFormulaById(formulaId);
     if (!formula) return;
 
     var noOfParams = formula.parameters.length;
@@ -669,6 +681,24 @@
         }
         select.appendChild(el);
       }
+    }
+
+    // fill in non-editing information about parameter columns
+    var compColParamsEl = _.findEl(computedColumnsOptionsEl, '.colcomputedparams');
+    // clear out old children.
+    compColParamsEl.innerHTML = '';
+
+    for (i = 0; i < noOfParams; i++){
+      // show the parameter in a paragraph
+      var paramEl = document.createElement('p');
+      paramEl.textContent = formula.parameters[i] + ': ';
+      compColParamsEl.appendChild(paramEl);
+
+      var paramCol = lima.columns[col.computedColumns[i]];
+      var colTitleEl = document.createElement('span');
+      colTitleEl.textContent = paramCol ? paramCol.title : 'unspecified';
+      if (!paramCol) colTitleEl.classList.add('unspecified');
+      paramEl.appendChild(colTitleEl);
     }
   }
 
@@ -884,6 +914,37 @@
       _.addClass('#paper th.add .colinfo', 'alreadythere');
     } else {
       _.removeClass('#paper th.add .colinfo', 'alreadythere');
+    }
+
+    // Computed columns
+    // If we have anything re. computed columns, show the further options
+    var compColDetailsEl = _.findEl('#paper th.add .colinfo .colcomputedcolumns');
+    if (col.formula) {
+      var formula = lima.getFormulaById(col.formula);
+      compColDetailsEl.classList.remove('option-not-checked');
+      _.fillEls(compColDetailsEl, '.colformula', formula.label);
+
+      var compColParamsEl = _.findEl(compColDetailsEl, '.colcomputedparams');
+      // clear out old children.
+      compColParamsEl.innerHTML = '';
+
+      var noOfParams = formula.parameters.length;
+
+      for (var i = 0; i < noOfParams; i++){
+        // show the parameter in a paragraph
+        var paramEl = document.createElement('p');
+        paramEl.textContent = formula.parameters[i] + ': ';
+        compColParamsEl.appendChild(paramEl);
+
+        var paramCol = lima.columns[col.computedColumns[i]];
+        var colTitleEl = document.createElement('span');
+        colTitleEl.textContent = paramCol ? paramCol.title : 'unspecified';
+        if (!paramCol) colTitleEl.classList.add('unspecified');
+        paramEl.appendChild(colTitleEl);
+      }
+
+    } else {
+      compColDetailsEl.classList.add('option-not-checked');
     }
 
     _.setYouOrName();

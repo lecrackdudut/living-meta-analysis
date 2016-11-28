@@ -155,6 +155,13 @@
               <p class="unpopulated">Select a column to add</p>
             </header>
             <p class="coldescription">error</p>
+            <div class="colcomputedcolumns">
+              <p>Computed column</p>
+              <p>Formula: <span class="colformula">error</span></p>
+              <div class="colcomputedparams">
+                <!-- gets populated in the code -->
+              </div>
+            </div>
             <p class="unpopulated">To see details of a column, move over it with your mouse.</p>
             <!-- todo comments -->
             <footer>
@@ -207,13 +214,16 @@
       <p class="coldescription notediting-or-not-yours needs-owner">error</p>
       <p class="coldescription editing only-if-yours needs-owner" contenteditable placeholder="add column description">error</p>
       <label class="editing only-if-yours needs-owner"><input type="checkbox" class="colcomputed">Show options for computed column</label>
-      <!-- todo FIXME when not editing or not owner, the stuff below should look different -->
       <div class="colcomputedcolumns option-not-checked">
-        <select class="colformulas">
+        <select class="colformulas editing only-if-yours needs-owner">
           <option value=''>Select formula</option>
           <!-- gets populated in the code, in which case the option above goes away -->
         </select>
-        <div class="colcomputedcolumnsselection">
+        <div class="colcomputedcolumnsselection editing only-if-yours needs-owner">
+          <!-- gets populated in the code -->
+        </div>
+        <p class="notediting-or-not-yours needs-owner">Formula: <span class="colformula">error</span></p>
+        <div class="notediting-or-not-yours needs-owner colcomputedparams">
           <!-- gets populated in the code -->
         </div>
       </div>
