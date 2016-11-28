@@ -730,15 +730,22 @@
       // computed column
       var inputs = [];
       var formula = lima.getFormulaById(col.formula);
+      var unfinished = false; // the column is not entirely defined, some parameters haven't been selected
 
       // compute the value
       // if anything here throws an exception, value cannot be computed
       for (var i=0; i<col.computedColumns.length; i++) {
+        if (!(col.computedColumns[i] in lima.columns)) {
+          unfinished = true;
+          break;
+        }
         inputs.push(getDatumValue(col.computedColumns[i], expIndex));
       }
-      val = formula.func.apply(null, inputs);
+
+      if (!unfinished) val = formula.func.apply(null, inputs);
+
+      // if the result is NaN but some of the inputs were empty, change the result to empty.
       if (typeof val == 'number' && isNaN(val)) {
-        // if the result is NaN but some of the inputs were empty, change the result to empty.
         if (inputs.some(function (x) { return x == null || x === ''; })) val = null;
       }
     }
