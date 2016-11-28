@@ -206,6 +206,8 @@
     if (oldPaperEl) oldPaperEl.parentElement.removeChild(oldPaperEl);
     rebuildingDOM = false;
 
+    resetComputedData();
+
     if (!paper.id) {
       _.addClass('body', 'new');
       lima.toggleEditing(true);
@@ -273,6 +275,8 @@
 
     setValidationErrorClass();
     setUnsavedClass();
+
+    recalculateComputedData();
   }
 
   /* editTags
@@ -492,7 +496,7 @@
         col.formula = e.target.value;
         if (col.formula) fillComputedColumnsSelection(paper, col, _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection'), col.formula);
         _.scheduleSave(col);
-        recalculateComputedColumns();
+        recalculateComputedData(true);
       };
 
       // if we already have a formula, fill the columns selection
@@ -555,7 +559,7 @@
             _.fillEls(td, '.value', val.value);
           }
 
-          addOnInputUpdater(td, '.value', 'textContent', identity, paper, ['experiments', expIndex, 'data', colId, 'value']);
+          addOnInputUpdater(td, '.value', 'textContent', identity, paper, ['experiments', expIndex, 'data', colId, 'value'], recalculateComputedData);
 
           var user = lima.getAuthenticatedUserEmail();
           _.fillEls (td, '.valenteredby', val && val.enteredBy || user);
@@ -568,39 +572,44 @@
           // todo computed from x and y
 
           var formula = lima.getFormulaById(col.formula);
-          var inputs = [];
-          var inputsEmpty = false; // if any input is an empty string, null, or not even there, this will be true
 
-          try {
-            // compute the value
-            // if anything here throws an exception, value cannot be computed
-            for (var i=0; i<col.computedColumns.length; i++) {
-              var input = null;
-              if (experiment.data &&
-                  experiment.data[col.computedColumns[i]] &&
-                  experiment.data[col.computedColumns[i]].value != null) {
-                input = experiment.data[col.computedColumns[i]].value;
+          addComputedDatum(col, function() {
+
+            var inputs = [];
+            var inputsEmpty = false; // if any input is an empty string, null, or not even there, this will be true
+
+            try {
+              // compute the value
+              // if anything here throws an exception, value cannot be computed
+              for (var i=0; i<col.computedColumns.length; i++) {
+                var input = null;
+                if (experiment.data &&
+                    experiment.data[col.computedColumns[i]] &&
+                    experiment.data[col.computedColumns[i]].value != null) {
+                  input = experiment.data[col.computedColumns[i]].value;
+                }
+                inputs.push(input);
+                if (input == null || input === '') inputsEmpty = true;
               }
-              inputs.push(input);
-              if (input == null || input === '') inputsEmpty = true;
+              val = formula.func.apply(null, inputs);
+            } catch (e) {
+              val = null;
+              console.error('error computing value for experiment ' + expIndex + ' and col ' + colId, e);
             }
-            console.log(inputs);
-            val = formula.func.apply(null, inputs);
-          } catch (e) {
-            val = null;
-            console.error('error computing value for experiment ' + expIndex + ' and col ' + colId, e);
-          }
 
-          // handle bad values like Excel
-          if (val == null || isNaN(val)) {
-            val = inputsEmpty ? '' : '#VALUE!';
-            td.classList.add('empty');
-          }
+            // handle bad values like Excel
+            if (val == null || isNaN(val)) {
+              val = inputsEmpty ? '' : '#VALUE!';
+              td.classList.add('empty');
+            } else {
+              td.classList.remove('empty');
+            }
 
-          // only show three significant digits for numbers
-          if (typeof val == 'number') val = val.toPrecision(3);
+            // only show three significant digits for numbers
+            if (typeof val == 'number') val = val.toPrecision(3);
 
-          _.fillEls(td, '.value', val);
+            _.fillEls(td, '.value', val);
+          });
         }
 
         td.classList.add(col.type);
@@ -655,7 +664,7 @@
         select.onchange = function(e) {
           col.computedColumns[i] = e.target.value;
           _.scheduleSave(col);
-          recalculateComputedColumns();
+          recalculateComputedData(true);
         };
       })(i);
 
@@ -683,11 +692,38 @@
     }
   }
 
-  function recalculateComputedColumns() {
-    // TODO this one is gonna be interesting
-    // when building the dom, we'll want to save a list of functions that update every given computed cell
-    // order the list above so that computed columns that use computed columns come later
-    // here we'll just run all those functions
+  /* computed cols
+   *
+   *
+   *    ####   ####  #    # #####  #    # ##### ###### #####      ####   ####  #       ####
+   *   #    # #    # ##  ## #    # #    #   #   #      #    #    #    # #    # #      #
+   *   #      #    # # ## # #    # #    #   #   #####  #    #    #      #    # #       ####
+   *   #      #    # #    # #####  #    #   #   #      #    #    #      #    # #           #
+   *   #    # #    # #    # #      #    #   #   #      #    #    #    # #    # #      #    #
+   *    ####   ####  #    # #       ####    #   ###### #####      ####   ####  ######  ####
+   *
+   *
+   */
+  var computedData;
+
+  function resetComputedData() {
+    computedData = [];
+    computedData.ordered = false;
+  }
+
+  // when building the dom, we save a list of functions that update every given computed cell
+  function addComputedDatum(col, f) {
+    computedData.push({col: col, f: f});
+  }
+
+  function recalculateComputedData(forceSort) {
+    // order the list of computed-column-calculating functions
+    // so that computed columns that use computed columns come later
+    if (!computedData.ordered || forceSort) {
+      // // for every computed column, count the number of computed columns it depends on
+    }
+    // now call all the calculation functions
+    computedData.forEach(function (record) { record.f(); });
   }
 
   /* adding cols
@@ -1286,8 +1322,9 @@
    */
   var identity = null; // special value to use as validatorSanitizer
 
-  function addOnInputUpdater(root, selector, property, validatorSanitizer, target, targetProp) {
+  function addOnInputUpdater(root, selector, property, validatorSanitizer, target, targetProp, onchange) {
     if (!(root instanceof Node)) {
+      onchange = targetProp;
       targetProp = target;
       target = validatorSanitizer;
       validatorSanitizer = property;
@@ -1314,6 +1351,7 @@
           el.classList.remove('validationerror');
           setValidationErrorClass();
           assignDeepValue(target, targetProp, value);
+          if (onchange) onchange(el);
           _.scheduleSave(target);
         };
       } else {
