@@ -1523,8 +1523,8 @@ body:not(.page-about-you) #paper.no-data table.experiments {
   display: none;
 }
 
-#paper .colcomputedcolumnsselection label,
-#paper .colcomputedcolumnsselection label > select {
+#paper .colformulacolumnsselection label,
+#paper .colformulacolumnsselection label > select {
   display: block;
 }
 

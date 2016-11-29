@@ -502,14 +502,14 @@
           // fill in the current formula
           _.fillEls(computedColumnsOptionsEl, '.colformula', formula.label);
           // fill the columns selection
-          fillComputedColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
+          fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
         }
         _.scheduleSave(col);
         recalculateComputedData();
       };
 
       // if we already have a formula, fill the columns selection
-      if (formula) fillComputedColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
+      if (formula) fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
 
       _.setDataProps(th, '.needs-owner', 'owner', col.definedBy || user);
     });
@@ -627,8 +627,8 @@
     experimentsContainer.appendChild(table);
   }
 
-  function fillComputedColumnsSelection(paper, col, computedColumnsOptionsEl, formula) {
-    var wrapperEl = _.findEl(computedColumnsOptionsEl, '.colcomputedcolumnsselection');
+  function fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula) {
+    var wrapperEl = _.findEl(computedColumnsOptionsEl, '.colformulacolumnsselection');
 
     // clear out old children.
     wrapperEl.innerHTML = '';
@@ -638,8 +638,8 @@
     var noOfParams = formula.parameters.length;
 
     // make sure computed columns array matches the number of expected parameters
-    if (!Array.isArray(col.computedColumns)) col.computedColumns = [];
-    col.computedColumns.length = noOfParams;
+    if (!Array.isArray(col.formulaColumns)) col.formulaColumns = [];
+    col.formulaColumns.length = noOfParams;
 
     for (var i = 0; i < noOfParams; i++){
       // Make a select dropdown
@@ -654,7 +654,7 @@
       // preserve the value of i inside this code
       (function(i){
         select.onchange = function(e) {
-          col.computedColumns[i] = e.target.value;
+          col.formulaColumns[i] = e.target.value;
           _.scheduleSave(col);
           recalculateComputedData();
         };
@@ -676,7 +676,7 @@
         var el = document.createElement("option");
         el.textContent = lima.columns[colId].title;
         el.value = colId;
-        if (col.computedColumns[i] === el.value) {
+        if (col.formulaColumns[i] === el.value) {
           el.selected = true;
         }
         select.appendChild(el);
@@ -684,7 +684,7 @@
     }
 
     // fill in non-editing information about parameter columns
-    var compColParamsEl = _.findEl(computedColumnsOptionsEl, '.colcomputedparams');
+    var compColParamsEl = _.findEl(computedColumnsOptionsEl, '.colformulacolumns');
     // clear out old children.
     compColParamsEl.innerHTML = '';
 
@@ -694,7 +694,7 @@
       paramEl.textContent = formula.parameters[i] + ': ';
       compColParamsEl.appendChild(paramEl);
 
-      var paramCol = lima.columns[col.computedColumns[i]];
+      var paramCol = lima.columns[col.formulaColumns[i]];
       var colTitleEl = document.createElement('span');
       colTitleEl.textContent = paramCol ? paramCol.title : 'unspecified';
       if (!paramCol) colTitleEl.classList.add('unspecified');
@@ -764,10 +764,10 @@
 
       // compute the value
       // if anything here throws an exception, value cannot be computed
-      for (var i=0; i<col.computedColumns.length; i++) {
-        if (!(col.computedColumns[i] in lima.columns)) break; // the computed column's input columns are not all defined
+      for (var i=0; i<col.formulaColumns.length; i++) {
+        if (!(col.formulaColumns[i] in lima.columns)) break; // the computed column's input columns are not all defined
         columnCompletelyDefined = true;
-        inputs.push(getDatumValue(col.computedColumns[i], expIndex));
+        inputs.push(getDatumValue(col.formulaColumns[i], expIndex));
       }
 
       if (columnCompletelyDefined) val = formula.func.apply(null, inputs);
@@ -922,7 +922,7 @@
       compColDetailsEl.classList.remove('option-not-checked');
       _.fillEls(compColDetailsEl, '.colformula', formula.label);
 
-      var compColParamsEl = _.findEl(compColDetailsEl, '.colcomputedparams');
+      var compColParamsEl = _.findEl(compColDetailsEl, '.colformulacolumns');
       // clear out old children.
       compColParamsEl.innerHTML = '';
 
@@ -934,7 +934,7 @@
         paramEl.textContent = formula.parameters[i] + ': ';
         compColParamsEl.appendChild(paramEl);
 
-        var paramCol = lima.columns[col.computedColumns[i]];
+        var paramCol = lima.columns[col.formulaColumns[i]];
         var colTitleEl = document.createElement('span');
         colTitleEl.textContent = paramCol ? paramCol.title : 'unspecified';
         if (!paramCol) colTitleEl.classList.add('unspecified');
