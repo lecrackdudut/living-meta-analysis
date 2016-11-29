@@ -206,7 +206,7 @@
     if (oldPaperEl) oldPaperEl.parentElement.removeChild(oldPaperEl);
     rebuildingDOM = false;
 
-    resetComputedData();
+    resetComputedDataSetters();
 
     if (!paper.id) {
       _.addClass('body', 'new');
@@ -718,7 +718,7 @@
   var computedDataCache = {};
   var CIRCULAR_COMPUTATION_FLAG = {message: 'uncaught circular computation!'};
 
-  function resetComputedData() {
+  function resetComputedDataSetters() {
     computedDataSetters = [];
   }
 
@@ -760,19 +760,17 @@
       // computed column
       var inputs = [];
       var formula = lima.getFormulaById(col.formula);
-      var unfinished = false; // the column is not entirely defined, some parameters haven't been selected
+      var columnCompletelyDefined = false;
 
       // compute the value
       // if anything here throws an exception, value cannot be computed
       for (var i=0; i<col.computedColumns.length; i++) {
-        if (!(col.computedColumns[i] in lima.columns)) {
-          unfinished = true;
-          break;
-        }
+        if (!(col.computedColumns[i] in lima.columns)) break; // the computed column's input columns are not all defined
+        columnCompletelyDefined = true;
         inputs.push(getDatumValue(col.computedColumns[i], expIndex));
       }
 
-      if (!unfinished) val = formula.func.apply(null, inputs);
+      if (columnCompletelyDefined) val = formula.func.apply(null, inputs);
 
       // if the result is NaN but some of the inputs were empty, change the result to empty.
       if (typeof val == 'number' && isNaN(val)) {
