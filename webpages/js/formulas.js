@@ -51,6 +51,12 @@
   }
 
   function logOddsRatioPercent (experimental, control) {
-    return logOddsRatio(strictToNumber(experimental)/100, strictToNumber(control)/100);
+    // validate the input
+    experimental = strictToNumber(experimental);
+    control = strictToNumber(control);
+
+    // perform the calculation
+    // may return NaN or infinities
+    return logOddsRatio(experimental/100, control/100);
   }
 })(window, document);
