@@ -498,18 +498,23 @@
         col.formula = e.target.value;
 
         var formula = lima.getFormulaById(col.formula);
-        if (formula) {
-          // fill in the current formula
-          _.fillEls(computedColumnsOptionsEl, '.colformula', formula.label);
-          // fill the columns selection
-          fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
-        }
+
+        // make sure formula columns array matches the number of expected parameters
+        if (!Array.isArray(col.formulaColumns)) col.formulaColumns = [];
+        col.formulaColumns.length = formula ? formula.parameters.length : 0;
+
+        // fill in the current formula
+        _.fillEls(computedColumnsOptionsEl, '.colformula', formula ? formula.label : 'error'); // the 'error' string should not be visible
+
+        // fill the columns selection
+        fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
+
         _.scheduleSave(col);
         recalculateComputedData();
       };
 
       // if we already have a formula, fill the columns selection
-      if (formula) fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
+      fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula);
 
       _.setDataProps(th, '.needs-owner', 'owner', col.definedBy || user);
     });
@@ -628,24 +633,27 @@
   }
 
   function fillFormulaColumnsSelection(paper, col, computedColumnsOptionsEl, formula) {
-    var wrapperEl = _.findEl(computedColumnsOptionsEl, '.colformulacolumnsselection');
 
+    // editing drop-down boxes for parameter columns
+    var formulaColumnsSelectionEl = _.findEl(computedColumnsOptionsEl, '.colformulacolumnsselection');
     // clear out old children.
-    wrapperEl.innerHTML = '';
+    formulaColumnsSelectionEl.innerHTML = '';
+
+    // non-editing information about parameter columns
+    var formulaColumnsInfoEl = _.findEl(computedColumnsOptionsEl, '.colformulacolumns');
+    // clear out old children.
+    formulaColumnsInfoEl.innerHTML = '';
+
 
     if (!formula) return;
 
     var noOfParams = formula.parameters.length;
 
-    // make sure computed columns array matches the number of expected parameters
-    if (!Array.isArray(col.formulaColumns)) col.formulaColumns = [];
-    col.formulaColumns.length = noOfParams;
-
     for (var i = 0; i < noOfParams; i++){
       // Make a select dropdown
       var label = document.createElement('label');
       label.textContent = formula.parameters[i] + ': ';
-      wrapperEl.appendChild(label);
+      formulaColumnsSelectionEl.appendChild(label);
 
       var select = document.createElement("select");
       label.appendChild(select);
@@ -683,16 +691,11 @@
       }
     }
 
-    // fill in non-editing information about parameter columns
-    var compColParamsEl = _.findEl(computedColumnsOptionsEl, '.colformulacolumns');
-    // clear out old children.
-    compColParamsEl.innerHTML = '';
-
     for (i = 0; i < noOfParams; i++){
       // show the parameter in a paragraph
       var paramEl = document.createElement('p');
       paramEl.textContent = formula.parameters[i] + ': ';
-      compColParamsEl.appendChild(paramEl);
+      formulaColumnsInfoEl.appendChild(paramEl);
 
       var paramCol = lima.columns[col.formulaColumns[i]];
       var colTitleEl = document.createElement('span');
@@ -922,9 +925,9 @@
       compColDetailsEl.classList.remove('option-not-checked');
       _.fillEls(compColDetailsEl, '.colformula', formula.label);
 
-      var compColParamsEl = _.findEl(compColDetailsEl, '.colformulacolumns');
+      var formulaColumnsInfoEl = _.findEl(compColDetailsEl, '.colformulacolumns');
       // clear out old children.
-      compColParamsEl.innerHTML = '';
+      formulaColumnsInfoEl.innerHTML = '';
 
       var noOfParams = formula.parameters.length;
 
@@ -932,7 +935,7 @@
         // show the parameter in a paragraph
         var paramEl = document.createElement('p');
         paramEl.textContent = formula.parameters[i] + ': ';
-        compColParamsEl.appendChild(paramEl);
+        formulaColumnsInfoEl.appendChild(paramEl);
 
         var paramCol = lima.columns[col.formulaColumns[i]];
         var colTitleEl = document.createElement('span');
