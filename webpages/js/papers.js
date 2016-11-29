@@ -480,7 +480,7 @@
 
       // fill in the current formula
       var formula = lima.getFormulaById(col.formula);
-      if (formula) _.fillEls(computedColumnsOptionsEl, '.colformula', formula.label);
+      _.fillEls(computedColumnsOptionsEl, '.colformula', formula ? formula.label : 'error'); // the 'error' string should not be visible
 
       // Add an option for every formula we know
       var formulas = lima.listFormulas();
