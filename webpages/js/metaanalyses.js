@@ -803,7 +803,7 @@
     _.addEventListener(th, 'button.move', 'click', moveColumn);
     _.addEventListener(th, 'button.delete', 'click', deleteColumn);
 
-    fillComments('comment-template', th, '.commentcount', '.fullcolinfo.popupbox main', metaanalysis, ['columns', columnIndex, 'comments']);
+    // fillComments('comment-template', th, '.commentcount', '.fullcolinfo.popupbox main', metaanalysis, ['columns', columnIndex, 'comments']);
 
     return th;
   }
