@@ -310,6 +310,7 @@
     } else {
       retval.formulaParams = [];
     }
+    retval.formula = lima.createFormulaString(retval);
     return retval;
   }
 
