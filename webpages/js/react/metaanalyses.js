@@ -164,12 +164,6 @@
     if (!Array.isArray(self.groupingAggregates)) self.groupingAggregates = [];
     if (!Array.isArray(self.excludedExperiments)) self.excludedExperiments = [];
 
-    // todo hiddenExperiments and excludedExperiments should probably be assoc arrays like
-    // hiddenExperiments: {
-    //   "paperid1": [ expindex1, expindex2, ... ],
-    //   "paperid2": [ expindex3, expindex4, ... ],
-    // }
-
     self.columnsHash = _.generateIDHash(self.columns);
 
     function populateParsedFormulaWithMA(x) {
