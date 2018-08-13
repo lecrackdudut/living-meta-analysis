@@ -43,70 +43,6 @@
   }
 
 
-  /* meta-analysis list
-   *
-   *
-   *   #    # ###### #####   ##           ##   #    #   ##   #      #   #  ####  #  ####     #      #  ####  #####
-   *   ##  ## #        #    #  #         #  #  ##   #  #  #  #       # #  #      # #         #      # #        #
-   *   # ## # #####    #   #    # ##### #    # # #  # #    # #        #    ####  #  ####     #      #  ####    #
-   *   #    # #        #   ######       ###### #  # # ###### #        #        # #      #    #      #      #   #
-   *   #    # #        #   #    #       #    # #   ## #    # #        #   #    # # #    #    #      # #    #   #
-   *   #    # ######   #   #    #       #    # #    # #    # ######   #    ####  #  ####     ###### #  ####    #
-   *
-   *
-   */
-
-  function requestAndFillMetaanalysisList() {
-    lima.getGapiIDToken()
-      .then(function (idToken) {
-        var email = lima.extractUserProfileEmailFromUrl();
-        return fetch('/api/metaanalyses/' + email, _.idTokenToFetchOptions(idToken));
-      })
-      .then(function (response) {
-        if (response.status === 404) return [];
-        else return _.fetchJson(response);
-      })
-      .then(function (papers) {
-        return papers.concat(loadAllLocalMetaanalyses());
-      })
-      .then(fillMetaanalysisList)
-      .catch(function (err) {
-        console.error("problem getting metaanalyses");
-        console.error(err);
-        _.apiFail();
-      });
-  }
-
-  function fillMetaanalysisList(metaanalyses) {
-    var list = _.findEl('.metaanalysis.list > ul');
-    list.innerHTML = '';
-
-    if (metaanalyses.length) {
-      // todo sort
-      metaanalyses.forEach(function (metaanalysis) {
-        var li = _.cloneTemplate('metaanalysis-list-item-template').children[0];
-        _.fillEls(li, '.name', metaanalysis.title);
-        _.fillEls(li, '.published', metaanalysis.published);
-        _.setProps(li, '.published', 'title', metaanalysis.published);
-        _.fillEls(li, '.description', metaanalysis.description);
-        _.setProps(li, '.description', 'title', metaanalysis.description);
-        if (!metaanalysis.storedLocally) {
-          _.setProps(li, 'a.mainlink', 'href', metaanalysis.title);
-        } else {
-          _.setProps(li, 'a.mainlink', 'href', '/' + lima.localStorageUsername + '/' + metaanalysis.title + '?type=metaanalysis'); // hint in case of local storage
-          li.classList.add('local');
-          // todo do something with the above class - highlight local papers
-        }
-        _.fillTags(li, '.tags', metaanalysis.tags);
-        list.appendChild(li);
-      });
-    } else {
-      list.appendChild(_.cloneTemplate('empty-list-template'));
-    }
-
-    _.setYouOrName();
-  }
-
   /* meta-analysis
    *
    *
@@ -3742,11 +3678,6 @@
     return localMetaanalyses;
   }
 
-  function loadAllLocalMetaanalyses() {
-    loadLocalMetaanalysesList();
-    return Object.keys(localMetaanalyses).map(loadLocalMetaanalysisWithoutPapers);
-  }
-
   function loadLocalMetaanalysisWithoutPapers(path) {
     var val = localStorage[localMetaanalyses[path]];
     if (!val) throw new Error('cannot find local metaanalysis at ' + path);
@@ -4696,7 +4627,6 @@
 
   // api to other scripts
   lima.extractMetaanalysisTitleFromUrl = extractMetaanalysisTitleFromUrl;
-  lima.requestAndFillMetaanalysisList = requestAndFillMetaanalysisList;
   lima.requestAndFillMetaanalysis = requestAndFillMetaanalysis;
 
   lima.Metaanalysis = Metaanalysis;
