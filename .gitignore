@@ -6,3 +6,7 @@ statsd-server-conf.sh
 test/gemini/screens
 coverage
 .DS_Store
+
+backup-2018-06-15-13-04.json
+zaloha-2018-06-15-13-04.json
+webpages/js/react/like_button.js
