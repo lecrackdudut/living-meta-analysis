@@ -1,0 +1,34 @@
+extends:
+  - eslint:recommended
+  - plugin:react/recommended
+
+plugins:
+  - react
+
+parserOptions:
+  ecmaVersion: 6
+  ecmaFeatures:
+    jsx: true
+  sourceType: module
+
+env:
+  browser: true
+  node: false
+
+rules:
+  no-console: off
+  comma-dangle:
+    - error
+    - only-multiline
+  indent:
+    - error
+    - 2
+  no-inner-declarations: off
+  semi:
+    - 2
+    - always
+
+globals:
+  math: true
+  React: true
+  ReactDOM: true

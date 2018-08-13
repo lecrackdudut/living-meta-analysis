@@ -58,23 +58,23 @@
 
   function requestAndFillMetaanalysisList() {
     lima.getGapiIDToken()
-    .then(function (idToken) {
-      var email = lima.extractUserProfileEmailFromUrl();
-      return fetch('/api/metaanalyses/' + email, _.idTokenToFetchOptions(idToken));
-    })
-    .then(function (response) {
-      if (response.status === 404) return [];
-      else return _.fetchJson(response);
-    })
-    .then(function (papers) {
-      return papers.concat(loadAllLocalMetaanalyses());
-    })
-    .then(fillMetaanalysisList)
-    .catch(function (err) {
-      console.error("problem getting metaanalyses");
-      console.error(err);
-      _.apiFail();
-    });
+      .then(function (idToken) {
+        var email = lima.extractUserProfileEmailFromUrl();
+        return fetch('/api/metaanalyses/' + email, _.idTokenToFetchOptions(idToken));
+      })
+      .then(function (response) {
+        if (response.status === 404) return [];
+        else return _.fetchJson(response);
+      })
+      .then(function (papers) {
+        return papers.concat(loadAllLocalMetaanalyses());
+      })
+      .then(fillMetaanalysisList)
+      .catch(function (err) {
+        console.error("problem getting metaanalyses");
+        console.error(err);
+        _.apiFail();
+      });
   }
 
   function fillMetaanalysisList(metaanalyses) {
@@ -127,18 +127,18 @@
 
     if (lima.userLocalStorage) {
       return Promise.resolve()
-      .then(loadLocalMetaanalysesList)
-      .then(function() { return loadLocalMetaanalysis('/' + email + '/' + title); })
-      .catch(function (err) {
-        console.log("could not get local metaanalysis, trying server for " + title, err);
-        return requestServerMetaanalysis(email, title)
-        .then(function(ma) {
-          // force saving in local storage
-          // then all papers are also saved in local storage
-          ma.save();
-          return ma;
+        .then(loadLocalMetaanalysesList)
+        .then(function() { return loadLocalMetaanalysis('/' + email + '/' + title); })
+        .catch(function (err) {
+          console.log("could not get local metaanalysis, trying server for " + title, err);
+          return requestServerMetaanalysis(email, title)
+            .then(function(ma) {
+              // force saving in local storage
+              // then all papers are also saved in local storage
+              ma.save();
+              return ma;
+            });
         });
-      });
     }
 
     return requestServerMetaanalysis(email, title);
@@ -146,15 +146,15 @@
 
   function requestServerMetaanalysis(email, title) {
     return lima.getGapiIDToken()
-    .then(function (idToken) {
-      currentMetaanalysisUrl = '/api/metaanalyses/' + email + '/' + title;
-      return fetch(currentMetaanalysisUrl, _.idTokenToFetchOptions(idToken));
-    })
-    .then(function (response) {
-      if (response.status === 404) _.notFound();
-      else return _.fetchJson(response);
-    })
-    .then(initMetaanalysis);
+      .then(function (idToken) {
+        currentMetaanalysisUrl = '/api/metaanalyses/' + email + '/' + title;
+        return fetch(currentMetaanalysisUrl, _.idTokenToFetchOptions(idToken));
+      })
+      .then(function (response) {
+        if (response.status === 404) _.notFound();
+        else return _.fetchJson(response);
+      })
+      .then(initMetaanalysis);
   }
 
   function requestAndFillMetaanalysis() {
@@ -162,18 +162,18 @@
     _.fillEls('#metaanalysis .title', title);
 
     requestMetaanalysis(title)
-    .then(setCurrentMetaanalysis)
-    .then(updateMetaanalysisView)
-    .then(function() {
-      _.removeClass('body', 'loading');
-      lima.onSignInChange(updateMetaanalysisView);
-    })
-    .catch(function (err) {
-      console.error("problem getting metaanalysis");
-      console.error(err);
-      throw _.apiFail();
-    })
-    .then(loadAllTitles); // ignoring any errors here
+      .then(setCurrentMetaanalysis)
+      .then(updateMetaanalysisView)
+      .then(function() {
+        _.removeClass('body', 'loading');
+        lima.onSignInChange(updateMetaanalysisView);
+      })
+      .catch(function (err) {
+        console.error("problem getting metaanalysis");
+        console.error(err);
+        throw _.apiFail();
+      })
+      .then(loadAllTitles); // ignoring any errors here
   }
 
   function Metaanalysis() {}
@@ -3031,14 +3031,14 @@
 
   function addPaperRow() {
     lima.requestPaper('new-paper')
-    .then(function (newPaper) {
-      // Populate an empty experiment
-      newPaper.experiments.push({id: newPaper.id + ',0'});
-      currentMetaanalysis.papers.push(newPaper);
-      currentMetaanalysis.paperOrder.push(newPaper.id);
-      updateMetaanalysisView();
-      setTimeout(focusFirstValidationError, 0);
-    });
+      .then(function (newPaper) {
+        // Populate an empty experiment
+        newPaper.experiments.push({id: newPaper.id + ',0'});
+        currentMetaanalysis.papers.push(newPaper);
+        currentMetaanalysis.paperOrder.push(newPaper.id);
+        updateMetaanalysisView();
+        setTimeout(focusFirstValidationError, 0);
+      });
   }
 
   /* aggregates
@@ -3568,21 +3568,21 @@
     if (allTitlesNextUpdate < curtime) {
       allTitlesNextUpdate = curtime + 5 * 60 * 1000; // update titles no less than 5 minutes from now
       fetch('/api/titles')
-      .then(_.fetchJson)
-      .then(function (titles) {
-        allTitles = titles;
-        if (lima.userLocalStorage) {
-          loadLocalMetaanalysesList();
-          Object.keys(localMetaanalyses).forEach(function (localURL) {
-            var title = extractMetaanalysisTitleFromUrl(localURL);
-            if (allTitles.indexOf(title) === -1) allTitles.push(title);
-          });
-        }
-      })
-      .catch(function (err) {
-        console.error('problem getting metaanalysis titles');
-        console.error(err);
-      });
+        .then(_.fetchJson)
+        .then(function (titles) {
+          allTitles = titles;
+          if (lima.userLocalStorage) {
+            loadLocalMetaanalysesList();
+            Object.keys(localMetaanalyses).forEach(function (localURL) {
+              var title = extractMetaanalysisTitleFromUrl(localURL);
+              if (allTitles.indexOf(title) === -1) allTitles.push(title);
+            });
+          }
+        })
+        .catch(function (err) {
+          console.error('problem getting metaanalysis titles');
+          console.error(err);
+        });
     }
   }
 
@@ -3766,8 +3766,8 @@
       val.paperOrder.forEach(function (id, index) {
         loadingPromises.push(
           Promise.resolve(id)
-          .then(lima.requestPaperById)
-          .then(function (paper) { val.papers[index] = paper; }));
+            .then(lima.requestPaperById)
+            .then(function (paper) { val.papers[index] = paper; }));
       });
     }
 
