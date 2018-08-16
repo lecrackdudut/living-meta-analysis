@@ -4,6 +4,7 @@ const express = require('express');
 
 // guard middleware enforcing that a user is logged in
 const GOOGLE_USER = require('simple-google-openid').guardMiddleware({ realm: 'accounts.google.com' });
+const jsonBodyParser = require('body-parser').json(config.jsonParserOptions);
 
 const NotFoundError = require('./errors/NotFoundError');
 const UnauthorizedError = require('./errors/UnauthorizedError');
@@ -15,11 +16,10 @@ const storage = require('./storage');
 const stats = require('./lib/stats');
 const tools = require('./lib/tools');
 
-const jsonBodyParser = require('body-parser').json(config.jsonParserOptions);
-
-const api = module.exports = express.Router({
+const api = express.Router({
   caseSensitive: true,
 });
+module.exports = api;
 
 module.exports.init = () => {
   // log stats
@@ -63,24 +63,24 @@ function setUpRoutes() {
   api.get(`/profile/:user(${config.USER_RE})`, returnUserProfile);
 
   api.get(`/papers/:user(${config.USER_RE})/`,
-      listPapersForUser);
+    listPapersForUser);
   api.get(`/papers/:user(${config.USER_RE})/:title(${config.URL_TITLE_RE})/`,
-      getPaperVersion);
-  api.get(`/papers/:user(${config.USER_RE})\/:title(${config.URL_TITLE_RE})/:time([0-9]+)/`,
-      getPaperVersion);
+    getPaperVersion);
+  api.get(`/papers/:user(${config.USER_RE})/:title(${config.URL_TITLE_RE})/:time([0-9]+)/`,
+    getPaperVersion);
   api.post(`/papers/:user(${config.USER_RE})/:title(${config.URL_TITLE_RE})/`,
-          GOOGLE_USER, SAME_USER, jsonBodyParser, savePaper);
+    GOOGLE_USER, SAME_USER, jsonBodyParser, savePaper);
 
   // todo above, a user that isn't SAME_USER should be able to submit new comments
 
   api.get(`/metaanalyses/:user(${config.USER_RE})`,
-          listMetaanalysesForUser);
+    listMetaanalysesForUser);
   api.get(`/metaanalyses/:user(${config.USER_RE})/:title(${config.URL_TITLE_RE})/`,
-          getMetaanalysisVersion);
+    getMetaanalysisVersion);
   api.get(`/metaanalyses/:user(${config.USER_RE})/:title(${config.URL_TITLE_RE})/:time([0-9]+)/`,
-          getMetaanalysisVersion);
+    getMetaanalysisVersion);
   api.post(`/metaanalyses/:user(${config.USER_RE})/:title(${config.URL_TITLE_RE})/`,
-          GOOGLE_USER, SAME_USER, jsonBodyParser, saveMetaanalysis);
+    GOOGLE_USER, SAME_USER, jsonBodyParser, saveMetaanalysis);
 }
 
 
@@ -110,7 +110,7 @@ module.exports.getKindForTitle = function getKindForTitle(user, title) {
     .then(() => resolve('metaanalysis'))
     .catch(() => storage.getPaperByTitle(user, title))
     .then(() => resolve('paper'))
-    .catch((err) => reject(err));
+    .catch(err => reject(err));
   });
 };
 
@@ -123,7 +123,7 @@ function listTitles(req, res, next) {
     });
     res.json(retval);
   })
-  .catch((err) => next(err));
+  .catch(err => next(err));
 }
 
 /* users
@@ -144,8 +144,8 @@ function SAME_USER(req, res, next) {
   const email = req.user.emails[0].value;
   storage.getUser(email) // check the user is registered
   .then((user) => {
-    if (user.email === req.params.user ||
-        user.username === req.params.user) {
+    if (user.email === req.params.user
+        || user.username === req.params.user) {
       next();
     } else {
       throw new Error(); // will be turned to UnauthorizedError below
@@ -161,7 +161,7 @@ module.exports.EXISTS_USER = function (req, res, next) {
   storage.getUser(req.params.user)
   .then(
     () => next(),
-    () => next(new NotFoundError())
+    () => next(new NotFoundError()),
   );
 };
 
@@ -185,9 +185,9 @@ function checkUser(req, res, next) {
   .then((storageUser) => {
     // Check whether there are any changes to the Google Object
     const strippedGoogleUser = extractReceivedUser(req.user);
-    if (strippedGoogleUser.displayName !== storageUser.displayName ||
-        strippedGoogleUser.email !== storageUser.email ||
-        JSON.stringify(strippedGoogleUser.photos) !== JSON.stringify(storageUser.photos)) {
+    if (strippedGoogleUser.displayName !== storageUser.displayName
+        || strippedGoogleUser.email !== storageUser.email
+        || JSON.stringify(strippedGoogleUser.photos) !== JSON.stringify(storageUser.photos)) {
       Object.assign(storageUser, strippedGoogleUser);
       storage.saveUser(storageUser.email, storageUser)
       .then((savedUser) => {
@@ -476,7 +476,7 @@ function extractMetaanalysisForSending(storageMetaanalysis, includePapers, user,
 
   if (includePapers && storageMetaanalysis.papers) {
     retval.papers = [];
-    storageMetaanalysis.papers.forEach((p) => retval.papers.push(extractPaperForSending(p, true, user)));
+    storageMetaanalysis.papers.forEach(p => retval.papers.push(extractPaperForSending(p, true, user)));
   }
 
   return retval;

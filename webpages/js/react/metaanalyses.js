@@ -288,11 +288,11 @@
     metaanalysisEl.classList.toggle('localsaving', !!lima.userLocalStorage);
 
     _.fillEls(metaanalysisEl, '.title', metaanalysis.title);
-    _.fillEls (metaanalysisEl, '.authors .value', metaanalysis.authors);
-    _.fillEls (metaanalysisEl, '.published .value', metaanalysis.published);
-    _.fillEls (metaanalysisEl, '.description .value', metaanalysis.description);
-    _.fillEls (metaanalysisEl, '.ctime .value', _.formatDateTime(metaanalysis.ctime));
-    _.fillEls (metaanalysisEl, '.mtime .value', _.formatDateTime(metaanalysis.mtime));
+    _.fillEls(metaanalysisEl, '.authors .value', metaanalysis.authors);
+    _.fillEls(metaanalysisEl, '.published .value', metaanalysis.published);
+    _.fillEls(metaanalysisEl, '.description .value', metaanalysis.description);
+    _.fillEls(metaanalysisEl, '.ctime .value', _.formatDateTime(metaanalysis.ctime));
+    _.fillEls(metaanalysisEl, '.mtime .value', _.formatDateTime(metaanalysis.mtime));
 
     var enteredBy = metaanalysis.enteredByUsername || metaanalysis.enteredBy;
     _.fillEls (metaanalysisEl, '.enteredby .value', enteredBy);

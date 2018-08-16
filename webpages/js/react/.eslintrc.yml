@@ -27,6 +27,7 @@ rules:
   semi:
     - 2
     - always
+  react/prop-types: off
 
 globals:
   math: true

@@ -22,3 +22,12 @@ rules:
     - "error"
     - 120
     - ignoreTrailingComments: true
+  indent:
+    - error
+    - 2
+    - MemberExpression: off
+  function-paren-newline: off
+  no-multi-spaces:
+    - error
+    - ignoreEOLComments: true
+  no-restricted-syntax: off
