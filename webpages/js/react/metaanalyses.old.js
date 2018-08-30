@@ -94,9 +94,22 @@
   }
 
   function requestAndFillMetaanalysis() {
-    const title = lima.extractMetaanalysisTitleFromUrl();
-    const domContainer = document.querySelector('body > main');
-    ReactDOM.render(<MetaanalysisComponent title={title}/>, domContainer);
+    var title = lima.extractMetaanalysisTitleFromUrl();
+    _.fillEls('#metaanalysis .title', title);
+
+    requestMetaanalysis(title)
+      .then(setCurrentMetaanalysis)
+      .then(updateMetaanalysisView)
+      .then(function() {
+        _.removeClass('body', 'loading');
+        lima.onSignInChange(updateMetaanalysisView);
+      })
+      .catch(function (err) {
+        console.error("problem getting metaanalysis");
+        console.error(err);
+        throw _.apiFail();
+      })
+      .then(loadAllTitles); // ignoring any errors here
   }
 
   function Metaanalysis() {}
@@ -193,28 +206,19 @@
     });
   }
 
+  function setCurrentMetaanalysis(metaanalysis) {
+    currentMetaanalysis = metaanalysis;
+  }
+
   function updateMetaanalysisView() {
     if (!currentMetaanalysis) return;
 
-    setNewnessState();
-
     const domContainer = document.querySelector('body > main');
-    ReactDOM.render(<MetaanalysisComponent ma={currentMetaanalysis} editing={lima.editing}/>, domContainer);
+    ReactDOM.render(<MetaanalysisComponent ma={currentMetaanalysis}/>, domContainer);
+    // fillMetaanalysis(currentMetaanalysis);
 
     // for a new metaanalysis, go to editing the title
     if (currentMetaanalysis.new) focusFirstValidationError();
-  }
-
-  function setNewnessState() {
-    if (currentMetaanalysis.new) {
-      _.addClass('body', 'new');
-    } else {
-      _.removeClass('body', 'new');
-    }
-
-    if (currentMetaanalysis.new || lima.userLocalStorage) {
-      lima.toggleEditing(true);
-    }
   }
 
   function updateAfterPaperSave() {
@@ -248,6 +252,92 @@
   var startNewTag = null;
   var flashTag = null;
   var rebuildingDOM = false;
+
+  function fillMetaanalysis(metaanalysis) {
+    // cleanup
+    var oldMetaanalysisEl = _.byId('metaanalysis');
+    rebuildingDOM = true;
+    if (oldMetaanalysisEl) oldMetaanalysisEl.parentElement.removeChild(oldMetaanalysisEl);
+    rebuildingDOM = false;
+
+    resetComputedDataSetters();
+
+    if (metaanalysis.new) {
+      _.addClass('body', 'new');
+    } else {
+      _.removeClass('body', 'new');
+    }
+
+    if (metaanalysis.new || lima.userLocalStorage) {
+      lima.toggleEditing(true);
+    }
+
+    var metaanalysisTemplate = _.byId('metaanalysis-template');
+    var metaanalysisEl = _.cloneTemplate(metaanalysisTemplate).children[0];
+    metaanalysisTemplate.parentElement.insertBefore(metaanalysisEl, metaanalysisTemplate);
+
+    fillTags(metaanalysisEl, metaanalysis);
+    fillMetaanalysisExperimentTable(metaanalysis);
+    fillGraphTable(metaanalysis);
+    fillAggregateTable(metaanalysis);
+    fillGroupingAggregateTable(metaanalysis);
+
+    // for now, do local storage "edit your copy"
+    // var ownURL = createPageURL(lima.getAuthenticatedUserEmail(), metaanalysis.title);
+    var ownURL = createPageURL(lima.localStorageUsername, metaanalysis.title);
+    _.setProps(metaanalysisEl, '.edityourcopy', 'href', ownURL + '?type=metaanalysis');
+
+    metaanalysisEl.classList.toggle('localsaving', !!lima.userLocalStorage);
+
+    _.fillEls(metaanalysisEl, '.title', metaanalysis.title);
+    _.fillEls(metaanalysisEl, '.authors .value', metaanalysis.authors);
+    _.fillEls(metaanalysisEl, '.published .value', metaanalysis.published);
+    _.fillEls(metaanalysisEl, '.description .value', metaanalysis.description);
+    _.fillEls(metaanalysisEl, '.ctime .value', _.formatDateTime(metaanalysis.ctime));
+    _.fillEls(metaanalysisEl, '.mtime .value', _.formatDateTime(metaanalysis.mtime));
+
+    var enteredBy = metaanalysis.enteredByUsername || metaanalysis.enteredBy;
+    _.fillEls (metaanalysisEl, '.enteredby .value', enteredBy);
+    _.setProps(metaanalysisEl, '.enteredby .value', 'href', '/' + enteredBy + '/');
+
+    _.setDataProps(metaanalysisEl, '.enteredby.needs-owner', 'owner', metaanalysis.enteredBy);
+
+    _.addOnInputUpdater(metaanalysisEl, ".authors .value", 'textContent', identity, metaanalysis, 'authors');
+    _.addOnInputUpdater(metaanalysisEl, ".published .value", 'textContent', identity, metaanalysis, 'published');
+    _.addOnInputUpdater(metaanalysisEl, ".description .value", 'textContent', identity, metaanalysis, 'description');
+
+    _.setDataProps('#metaanalysis .title.editing', 'origTitle', metaanalysis.title);
+    addConfirmedUpdater('#metaanalysis .title.editing', '#metaanalysis .title + .titlerename', '#metaanalysis .title ~ * .titlerenamecancel', 'textContent', checkTitleUnique, metaanalysis, 'title');
+
+    _.setYouOrName();
+
+    // now that the metaanalysis is all there, install various general and specific event listeners
+    _.addEventListener(metaanalysisEl, '[contenteditable].oneline', 'keydown', _.blurOnEnter);
+
+    _.addEventListener(metaanalysisEl, '[data-focuses]', 'click', focusAnotherElementOnClick);
+
+    _.addEventListener(metaanalysisEl, '.savingerror', 'click', _.manualSave);
+    _.addEventListener(metaanalysisEl, '.savepending', 'click', _.manualSave);
+    _.addEventListener(metaanalysisEl, '.validationerrormessage', 'click', focusFirstValidationError);
+    _.addEventListener(metaanalysisEl, '.unsavedmessage', 'click', focusFirstUnsaved);
+
+    document.addEventListener('keydown', moveBetweenDataCells, true);
+
+    if (pinnedBox) pinPopupBox(pinnedBox);
+
+    _.setValidationErrorClass();
+    _.setUnsavedClass();
+
+    // first clear out the old
+    addComputedDatumSetter(dropPlots);
+    // then redraw the graphs
+    // todo draw the graphs in order of currentMetaanalysis.graphs, not forests first and grapes second
+    addComputedDatumSetter(drawGrapeChart);
+    addComputedDatumSetter(drawForestPlot);
+    addComputedDatumSetter(drawForestPlotGroup);
+
+    recalculateComputedData();
+  }
 
   /* forest plot
    *
@@ -2076,6 +2166,10 @@
   var computedDataSetters;
   var dataCache = {};
   var CIRCULAR_COMPUTATION_FLAG = {message: 'uncaught circular computation!'};
+
+  function resetComputedDataSetters() {
+    computedDataSetters = [];
+  }
 
   // when building the dom, we save a list of functions that update every given computed cell
   function addComputedDatumSetter(f) {
@@ -4557,257 +4651,73 @@
   };
 
 
-  class Editable extends React.Component {
-    constructor(props) {
-      super(props);
-      this.ref = React.createRef();
-      this.updateProp = this.updateProp.bind(this);
-    }
-
+  // expects props.ma to be a Metaanalysis
+  class MetaanalysisComponent extends React.Component {
     render() {
-      if (this.props.editing) {
-        return <h1
-          className="title editing oneline"
-          ref={this.ref}
-          contentEditable
-          placeholder="enter a short name"
-          onInput={this.updateProp}
-        ></h1>;
-      } else {
-        return <h1 className="title notediting">{this.props.value}</h1>;
-      }
-    }
-
-    componentDidUpdate() {
-      this.updateDOM();
-    }
-    componentDidMount() {
-      this.updateDOM();
-    }
-
-    updateDOM() {
-      console.log('here', this.ref, currentMetaanalysis.title, this.props.value);
-      if (this.ref.current && this.ref.current.innerHTML != this.props.value) {
-        this.ref.current.textContent = this.props.value;
-      }
-    }
-
-    updateProp(e) {
-      console.time('foo');
-      currentMetaanalysis.title = e.target.textContent;
-      updateMetaanalysisView();
-      console.timeEnd('foo');
-    }
-  }
-
-  // expects props.tags, props.editing
-  // todo flashTag
-  // todo behaviour from fillTags
-  class Tags extends React.Component {
-    render() {
-      const tags = this.props.tags || [];
-
-      const renderedTags = [];
-
-      for (const tag of tags) {
-        renderedTags.push(
-          <li key={tag}>
-            <span className="tag">
-              {tag}
-            </span>
-            {this.props.editing && <span className="removetag">&times;</span>}
-          </li>
-        );
-      }
-
-      if (this.props.editing) {
-        renderedTags.push(
-          <li className="new" key=" new">
-            <span className="tag" contentEditable></span>
-          </li>
-        );
-        renderedTags.push(
-          <li className="addtag editing" key=" addtag">
-            <span className="notempty tag">+</span>
-            <span className="empty tag"> add tags</span>
-          </li>
-        );
-      }
-
       return (
-        <ul className={'tags' + (tags.length ? '' : 'empty')}>
-          {renderedTags}
-        </ul>
+        <section id="metaanalysis" className="validationroot">
+          <header>
+            <h1>Meta-analysis:&nbsp;</h1>
+            <h1 className="title notediting"></h1>
+            <h1 className="title editing oneline" contentEditable placeholder="enter a short name"></h1>
+            <button className="titlerename editing" disabled>rename</button>
+            {/* rename and change type warnings should only show up if the server confirms
+                 that there are actually other users of the thing (paper, column) */}
+            <div className="titlerenamewarning">
+              <h1>Are you sure to rename the meta-analysis from <span className="title"></span>?</h1>
+              <p>If others are using the meta-analysis, a change of the short name might surprise them.
+                To undo, press <button className="titlerenamecancel">cancel</button>
+              </p>
+            </div>
+            <ul className="tags"></ul>
+            {/* todo there could be an animated gif on the next line that is a spinner that takes just over 3s to go to full, and we reset it on every deferSave */}
+            <span className="localsaving">Your changes are saved locally on this computer.</span>
+            <span className="savepending">will be saved soon&hellip;</span>
+            <span className="saving">saving&hellip;</span>
+            <span className="savingerror" title="Sorry, something unexpected happened. Error details might be available in the browser console. Click here to try saving again.">saving error!</span>
+            <span className="validationerrormessage notunpin editing" title="click here to go to the first highlighted field">please correct fields highlighted below</span>
+            <span className="unsavedmessage notunpin editing" title="click here to go to the first unconfirmed value">some value(s) need confirmation to be saved</span>
+            <a className="edityourcopy" href="#">Edit your copy</a>
+          </header>
+          {/* <p className="authors">Authors:
+            <span className="value notediting">error</span>
+            <span className="value editing oneline" contenteditable placeholder="enter the authors">error</span>
+          </p> */}
+          <div className="published popupboxtrigger">
+            <div className="edithighlight">
+              <span className="popupboxhighlight" data-focuses=".value.editing">Reference:</span>
+              <span className="value notediting">error</span>
+              <span className="value editing" contentEditable placeholder="authors, year, title, journal etc.">error</span>
+            </div>
+            <div className="popupbox editing" data-boxid='reference'>
+              <div className="pin"></div>
+              <header><p>Reference</p></header>
+              <p className="description">Details of where this Meta-analysis has been published (if anywhere). Should include authors, year, title, and all the usual bibliographic information.</p>
+              {/* todo comments */}
+            </div>
+          </div>
+          <p className="description edithighlight">
+            <span data-focuses=".value.editing">Description: </span>
+            <span className="value notediting">error</span>
+            <span className="value editing" contentEditable placeholder="add description">error</span>
+          </p>
+          {/* todo show "other contributors" or "forks" or "clones" ... */}
+          {/* todo show meta-analyses that use this paper */}
+          {/* todo show history */}
+          {/* when not editing, show something for empty doi and link (or nothing at all?) */}
+          {/* todo comments */}
+          <p className="ma-table-heading">Meta-analysis table:</p>
+          <div className="experiments"></div>
+          <div className="plots"></div>
+          <div className="graphs"></div>
+          <div className="aggregates"></div>
+          <p className='no-table'>No data has been entered for this meta-analysis yet.
+            <span className="only-if-page-about-you">Turn editing on to add data.</span>{/* todo instruction to clone the paper? */}</p>
+          <p>Entered <span className="enteredby if-not-yours-or-page-not-about-you needs-owner"> by <a className="value" href="error">error</a></span><span className="ctime"> on <span className="value date">error</span></span></p>
+          <p className="mtime">Last modified: <span className="value date">error</span></p>
+        </section>
       );
     }
   }
 
-
-  // expects props.ma to be a Metaanalysis
-  class MetaanalysisComponent extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = { loaded: false };
-    }
-
-    async componentDidMount() {
-
-      currentMetaanalysis = await requestMetaanalysis(this.props.title);
-      setNewnessState();
-      // updateMetaanalysisView();
-      // lima.onSignInChange(updateMetaanalysisView);
-
-      //   .then(updateMetaanalysisView)
-      //   .then(function() {
-      //     _.removeClass('body', 'loading');
-      //   })
-      //   .catch(function (err) {
-      //     console.error("problem getting metaanalysis");
-      //     console.error(err);
-      //     throw _.apiFail();
-      //   })
-      //   .then(loadAllTitles); // ignoring any errors here
-
-    }
-
-    render() {
-      // return (
-      //   <section id="metaanalysis" className="validationroot">
-      //     <header>
-      //       <h1>Meta-analysis:&nbsp;</h1>
-      //       <Editable className="title" editing={this.props.editing} oneline placeholder="enter a short name" value={this.props.ma.title}/>
-      //       <button className="titlerename editing" disabled>rename</button>
-      //       {/* rename and change type warnings should only show up if the server confirms
-      //            that there are actually other users of the thing (paper, column) */}
-      //       <div className="titlerenamewarning">
-      //         <h1>Are you sure to rename the meta-analysis from <span className="title">{this.props.ma.title}</span>?</h1>
-      //         <p>If others are using the meta-analysis, a change of the short name might surprise them.
-      //           To undo, press <button className="titlerenamecancel">cancel</button>
-      //         </p>
-      //       </div>
-      //       <Tags tags={this.props.ma.tags} editing={this.props.editing}/>
-      //       {/* todo there could be an animated gif on the next line that is a spinner that takes just over 3s to go to full, and we reset it on every deferSave */}
-      //       <span className="localsaving">Your changes are saved locally on this computer.</span>
-      //       <span className="savepending">will be saved soon&hellip;</span>
-      //       <span className="saving">saving&hellip;</span>
-      //       <span className="savingerror" title="Sorry, something unexpected happened. Error details might be available in the browser console. Click here to try saving again.">saving error!</span>
-      //       <span className="validationerrormessage notunpin editing" title="click here to go to the first highlighted field">please correct fields highlighted below</span>
-      //       <span className="unsavedmessage notunpin editing" title="click here to go to the first unconfirmed value">some value(s) need confirmation to be saved</span>
-      //       <a className="edityourcopy" href="#">Edit your copy</a>
-      //     </header>
-      //     {/* <p className="authors">Authors:
-      //       <span className="value notediting">error</span>
-      //       <span className="value editing oneline" contenteditable placeholder="enter the authors">error</span>
-      //     </p> */}
-      //     <div className="published popupboxtrigger">
-      //       <div className="edithighlight">
-      //         <span className="popupboxhighlight" data-focuses=".value.editing">Reference:</span>
-      //         <span className="value notediting">error</span>
-      //         <span className="value editing" contenteditabl="e" placeholder="authors, year, title, journal etc.">error</span>
-      //       </div>
-      //       <div className="popupbox editing" data-boxid='reference'>
-      //         <div className="pin"></div>
-      //         <header><p>Reference</p></header>
-      //         <p className="description">Details of where this Meta-analysis has been published (if anywhere). Should include authors, year, title, and all the usual bibliographic information.</p>
-      //         {/* todo comments */}
-      //       </div>
-      //     </div>
-      //     <p className="description edithighlight">
-      //       <span data-focuses=".value.editing">Description: </span>
-      //       <span className="value notediting">error</span>
-      //       <span className="value editing" contenteditabl="e" placeholder="add description">error</span>
-      //     </p>
-      //     {/* todo show "other contributors" or "forks" or "clones" ... */}
-      //     {/* todo show meta-analyses that use this paper */}
-      //     {/* todo show history */}
-      //     {/* when not editing, show something for empty doi and link (or nothing at all?) */}
-      //     {/* todo comments */}
-      //     <p className="ma-table-heading">Meta-analysis table:</p>
-      //     <div className="experiments"></div>
-      //     <div className="plots"></div>
-      //     <div className="graphs"></div>
-      //     <div className="aggregates"></div>
-      //     <p className='no-table'>No data has been entered for this meta-analysis yet.
-      //       <span className="only-if-page-about-you">Turn editing on to add data.</span>{/* todo instruction to clone the paper? */}</p>
-      //     <p>Entered <span className="enteredby if-not-yours-or-page-not-about-you needs-owner"> by <a className="value" href="error">error</a></span><span className="ctime"> on <span className="value date">error</span></span></p>
-      //     <p className="mtime">Last modified: <span className="value date">error</span></p>
-      //   </section>
-      // );
-      return null;
-    }
-  }
-
-
-
-  function fillMetaanalysis(metaanalysis) {
-    const metaanalysisEl = null;
-
-    fillTags(metaanalysisEl, metaanalysis);
-    fillMetaanalysisExperimentTable(metaanalysis);
-    fillGraphTable(metaanalysis);
-    fillAggregateTable(metaanalysis);
-    fillGroupingAggregateTable(metaanalysis);
-
-    // for now, do local storage "edit your copy"
-    // var ownURL = createPageURL(lima.getAuthenticatedUserEmail(), metaanalysis.title);
-    var ownURL = createPageURL(lima.localStorageUsername, metaanalysis.title);
-    _.setProps(metaanalysisEl, '.edityourcopy', 'href', ownURL + '?type=metaanalysis');
-
-    metaanalysisEl.classList.toggle('localsaving', !!lima.userLocalStorage);
-
-    _.fillEls(metaanalysisEl, '.authors .value', metaanalysis.authors);
-    _.fillEls(metaanalysisEl, '.published .value', metaanalysis.published);
-    _.fillEls(metaanalysisEl, '.description .value', metaanalysis.description);
-    _.fillEls(metaanalysisEl, '.ctime .value', _.formatDateTime(metaanalysis.ctime));
-    _.fillEls(metaanalysisEl, '.mtime .value', _.formatDateTime(metaanalysis.mtime));
-
-    var enteredBy = metaanalysis.enteredByUsername || metaanalysis.enteredBy;
-    _.fillEls (metaanalysisEl, '.enteredby .value', enteredBy);
-    _.setProps(metaanalysisEl, '.enteredby .value', 'href', '/' + enteredBy + '/');
-
-    _.setDataProps(metaanalysisEl, '.enteredby.needs-owner', 'owner', metaanalysis.enteredBy);
-
-    _.addOnInputUpdater(metaanalysisEl, ".authors .value", 'textContent', identity, metaanalysis, 'authors');
-    _.addOnInputUpdater(metaanalysisEl, ".published .value", 'textContent', identity, metaanalysis, 'published');
-    _.addOnInputUpdater(metaanalysisEl, ".description .value", 'textContent', identity, metaanalysis, 'description');
-
-    _.setDataProps('#metaanalysis .title.editing', 'origTitle', metaanalysis.title);
-    addConfirmedUpdater('#metaanalysis .title.editing', '#metaanalysis .title + .titlerename', '#metaanalysis .title ~ * .titlerenamecancel', 'textContent', checkTitleUnique, metaanalysis, 'title');
-
-    _.setYouOrName();
-
-    // now that the metaanalysis is all there, install various general and specific event listeners
-    _.addEventListener(metaanalysisEl, '[contenteditable].oneline', 'keydown', _.blurOnEnter);
-
-    _.addEventListener(metaanalysisEl, '[data-focuses]', 'click', focusAnotherElementOnClick);
-
-    _.addEventListener(metaanalysisEl, '.savingerror', 'click', _.manualSave);
-    _.addEventListener(metaanalysisEl, '.savepending', 'click', _.manualSave);
-    _.addEventListener(metaanalysisEl, '.validationerrormessage', 'click', focusFirstValidationError);
-    _.addEventListener(metaanalysisEl, '.unsavedmessage', 'click', focusFirstUnsaved);
-
-    document.addEventListener('keydown', moveBetweenDataCells, true);
-
-    if (pinnedBox) pinPopupBox(pinnedBox);
-
-    _.setValidationErrorClass();
-    _.setUnsavedClass();
-
-    // first clear out the old
-    addComputedDatumSetter(dropPlots);
-    // then redraw the graphs
-    // todo draw the graphs in order of currentMetaanalysis.graphs, not forests first and grapes second
-    addComputedDatumSetter(drawGrapeChart);
-    addComputedDatumSetter(drawForestPlot);
-    addComputedDatumSetter(drawForestPlotGroup);
-
-    recalculateComputedData();
-  }
 })(window, document);
-
-
-
-
-// todo
-// loading
-// saving

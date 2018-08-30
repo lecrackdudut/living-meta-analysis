@@ -7,6 +7,10 @@
 
 'use strict';
 
+const Datastore = require('@google-cloud/datastore');
+const fs = require('fs');
+const path = require('path');
+
 const ValidationError = require('./errors/ValidationError');
 const NotImplementedError = require('./errors/NotImplementedError');
 const ForbiddenError = require('./errors/ForbiddenError');
@@ -14,15 +18,12 @@ const config = require('./config');
 const stats = require('./lib/stats');
 const tools = require('./lib/tools');
 
-const Datastore = require('@google-cloud/datastore');
-const fs = require('fs');
-
-const datastore = process.env.TESTING ? createStubDatastore() :
-                    new Datastore({
-                      projectId: config.gcloudProject.projectId,
-                      keyFilename: config.gcloudProject.keyFilename,
-                      namespace: config.gcloudDatastoreNamespace,
-                    });
+const datastore = process.env.TESTING ? createStubDatastore()
+  : new Datastore({
+    projectId: config.gcloudProject.projectId,
+    keyFilename: config.gcloudProject.keyFilename,
+    namespace: config.gcloudDatastoreNamespace,
+  });
 
 const TITLE_REXP = new RegExp(`^${config.TITLE_RE}$`);
 const USERNAME_REXP = new RegExp(`^${config.USERNAME_RE}$`);
@@ -48,7 +49,7 @@ function fillByAndCtimes(current, original, email) {
   fillByAndCtimeInComments(current.comments, orig.comments, email);
 
   if (current.experiments) {
-    for (let expIndex = 0; expIndex < current.experiments.length; expIndex++) {
+    for (let expIndex = 0; expIndex < current.experiments.length; expIndex += 1) {
       const exp = current.experiments[expIndex];
       const origExp = (orig.experiments || [])[expIndex] || {};
       // todo these values should allow us to construct better patches
@@ -68,7 +69,7 @@ function fillByAndCtimes(current, original, email) {
   }
 
   if (current.columns) {
-    for (let colIndex = 0; colIndex < current.columns.length; colIndex++) {
+    for (let colIndex = 0; colIndex < current.columns.length; colIndex += 1) {
       if (typeof current.columns[colIndex] === 'object') {
         const col = current.columns[colIndex];
         const origCol = (orig.columns || [])[colIndex] || {};
@@ -78,7 +79,7 @@ function fillByAndCtimes(current, original, email) {
   }
 
   if (current.aggregates) {
-    for (let aggrIndex = 0; aggrIndex < current.aggregates.length; aggrIndex++) {
+    for (let aggrIndex = 0; aggrIndex < current.aggregates.length; aggrIndex += 1) {
       const aggr = current.aggregates[aggrIndex];
       const origAggr = (orig.aggregates || [])[aggrIndex] || {};
       fillByAndCtimeInComments(aggr.comments, origAggr.comments, email);
@@ -89,7 +90,7 @@ function fillByAndCtimes(current, original, email) {
 function fillByAndCtimeInComments(comments, origComments, email) {
   origComments = origComments || [];
   if (!Array.isArray(comments)) return;
-  for (let i = 0; i < comments.length; i++) {
+  for (let i = 0; i < comments.length; i += 1) {
     const com = comments[i];
     const origCom = origComments[i] || {};
     const origComIfSameText = origCom.text === com.text ? origCom : {};
@@ -163,7 +164,7 @@ function checkForDisallowedChanges(current, original) {
   // check that every experiment has at least the data values that were there originally
   // check that only last comment by a given user has changed, if any
   if (current.experiments) {
-    for (let expIndex = 0; expIndex < current.experiments.length; expIndex++) {
+    for (let expIndex = 0; expIndex < current.experiments.length; expIndex += 1) {
       const exp = current.experiments[expIndex];
       const origExp = (original.experiments || [])[expIndex] || {};
 
@@ -189,7 +190,7 @@ function checkForDisallowedChanges(current, original) {
             }
 
             const changedCommentByOwner = {};
-            for (let i = 0; i < origComments.length; i++) {
+            for (let i = 0; i < origComments.length; i += 1) {
               const comment = comments[i];
               const origComment = origComments[i];
               if (comment.CHECKby !== origComment.by) {
@@ -218,8 +219,7 @@ function checkForDisallowedChanges(current, original) {
 
 const allTitles = [];
 
-module.exports.listTitles = () =>
-  metaanalysisCache.then(() => paperCache)
+module.exports.listTitles = () => metaanalysisCache.then(() => paperCache)
   .then(() => allTitles);
 
 
@@ -303,7 +303,7 @@ function getAllUsers() {
 function sendUserStats(users) {
   // stats of how many users we have and how many have usernames
   stats.gauge('users', Object.keys(users).length);
-  stats.gauge('users_migrated', countMigrated(Object.keys(users).map((key) => users[key])));
+  stats.gauge('users_migrated', countMigrated(Object.keys(users).map(key => users[key])));
   stats.gauge('usernames', allUsernames.length - forbiddenUsernames.length);
 }
 
@@ -341,8 +341,8 @@ function getUser(user) {
     (vals) => {
       const email = vals[0];
       const users = vals[1];
-      return users[email] || Promise.reject(`user ${email} not found`);
-    }
+      return users[email] || Promise.reject(new Error(`user ${email} not found`));
+    },
   );
 }
 
@@ -368,7 +368,7 @@ module.exports.saveUser = (email, user, options) => {
   }
 
   return userCache.then(
-    (users) => new Promise((resolve, reject) => {
+    users => new Promise((resolve, reject) => {
       const original = users[email];
       // reject the save if we're restoring from another datastore and we already have this user
       if (options.restoring && original) {
@@ -403,7 +403,7 @@ module.exports.saveUser = (email, user, options) => {
           resolve(user);
         }
       });
-    })
+    }),
   );
 };
 
@@ -415,7 +415,7 @@ function getForbiddenUsernames() {
   const retval = [].concat(config.FORBIDDEN_USERNAMES);
 
   // then populate the rest by taking a look at /webpages
-  const files = fs.readdirSync(__dirname + '/../webpages');
+  const files = fs.readdirSync(path.join(__dirname, '..', 'webpages'));
 
   files.forEach((name) => {
     addUsernameIfNotThere(retval, name);
@@ -458,7 +458,7 @@ module.exports.getEmailAddressOfUser = getEmailAddressOfUser;
 function getUsernameOfUser(user) {
   if (user.indexOf('@') === -1) return Promise.resolve(user);
 
-  return userCache.then((users) => users[user].username);
+  return userCache.then(users => users[user].username);
 }
 
 module.exports.getUsernameOfUser = getUsernameOfUser;
@@ -717,8 +717,8 @@ module.exports.getPapersEnteredBy = (user) => {
     (vals) => {
       const email = vals[0];
       const papers = vals[1];
-      return papers.filter((p) => p.enteredBy === email);
-    }
+      return papers.filter(p => p.enteredBy === email);
+    },
   );
 };
 
@@ -733,7 +733,7 @@ module.exports.getPaperByTitle = (user, title, time) => {
   // todo different users can use different titles for the same thing
 
   if (title === config.NEW_PAPER_TITLE) {
-    return getEmailAddressOfUser(user).then((email) => newPaper(email));
+    return getEmailAddressOfUser(user).then(email => newPaper(email));
   }
 
   return getUser(user) // check that the user exists (we ignore the return value)
@@ -787,7 +787,8 @@ module.exports.savePaper = (paper, email, origTitle, options) => {
     if (!paper.id) {
       paper.id = '/id/p/' + ctime;
       paper.enteredBy = email;
-      paper.ctime = paper.mtime = ctime;
+      paper.ctime = ctime;
+      paper.mtime = ctime;
       doAddPaperToCache = () => {
         papers.push(paper);
         allTitles.push(paper.title);
@@ -795,7 +796,7 @@ module.exports.savePaper = (paper, email, origTitle, options) => {
       };
     } else {
       let i = 0;
-      for (; i < papers.length; i++) {
+      for (; i < papers.length; i += 1) {
         if (papers[i].id === paper.id) { // todo change paperCache to be indexed by id?
           original = papers[i];
           break;
@@ -851,24 +852,33 @@ module.exports.savePaper = (paper, email, origTitle, options) => {
     // save the paper in the data store
     const key = datastore.key(['Paper', paper.id]);
     // this is here until we add versioning on the papers themselves
-    const logKey = datastore.key(['Paper', paper.id,
-                                  'PaperLog', paper.id + '/' + paper.mtime]);
+    const logKey = datastore.key([
+      'Paper', paper.id,
+      'PaperLog', paper.id + '/' + paper.mtime]);
     if (!options.restoring) console.log('savePaper saving (into Paper and PaperLog)');
     return new Promise((resolve, reject) => {
       datastore.save(
         [
           { key, data: paper },
-          { key: logKey,
+          {
+            key: logKey,
             data:
             [
-              { name: 'mtime',
-                value: paper.mtime },
-              { name: 'enteredBy',
-                value: email },
-              { name: 'paper',
+              {
+                name: 'mtime',
+                value: paper.mtime,
+              },
+              {
+                name: 'enteredBy',
+                value: email,
+              },
+              {
+                name: 'paper',
                 value: paper,
-                excludeFromIndexes: true },
-            ] },
+                excludeFromIndexes: true,
+              },
+            ],
+          },
         ],
         (err) => {
           if (err) {
@@ -878,7 +888,7 @@ module.exports.savePaper = (paper, email, origTitle, options) => {
           } else {
             resolve();
           }
-        }
+        },
       );
     });
   })
@@ -957,7 +967,7 @@ function sendMetaanalysisStats(metaanalyses) {
 }
 
 function countMigrated(arr) {
-  return arr.filter((obj) => obj.migrated).length;
+  return arr.filter(obj => obj.migrated).length;
 }
 
 /*
@@ -976,8 +986,10 @@ function migrateMetaanalysis(metaanalysis, papers, columns) {
   //     when all is migrated: just remove this code
   // migrate aggregate graphs to graphs
   if (metaanalysis.aggregates) {
-    const oldGraphs = ['forestPlotNumberAggr', 'forestPlotPercentAggr',
-                       'grapeChartNumberAggr', 'grapeChartPercentAggr'];
+    const oldGraphs = [
+      'forestPlotNumberAggr', 'forestPlotPercentAggr',
+      'grapeChartNumberAggr', 'grapeChartPercentAggr',
+    ];
     // going backwards so we can safely delete array elements
     for (let i = metaanalysis.aggregates.length - 1; i >= 0; i -= 1) {
       const formulaName = metaanalysis.aggregates[i].formula.split('(')[0];
@@ -1003,7 +1015,7 @@ function migrateMetaanalysis(metaanalysis, papers, columns) {
   // prepare the papers this metaanalysis depends on
   const maPapers = metaanalysis.paperOrder.map((paperId) => {
     // find the paper with the matching ID
-    const retval = papers.find((paper) => paper.id === paperId);
+    const retval = papers.find(paper => paper.id === paperId);
     if (!retval) {
       throw new Error(`metaanalysis ${metaanalysis.title} has a paper ${paperId} that isn't in the datastore`);
     }
@@ -1027,7 +1039,7 @@ function migrateMetaanalysis(metaanalysis, papers, columns) {
       colObject.sourceColumnMap = {};
       maPapers.forEach((paper) => {
         // go through paper's columns, find the one whose obsolete id matches col, use its ID in this map
-        const paperCol = paper.columns.find((paperColObject) => paperColObject.obsoleteIDForMigration === col);
+        const paperCol = paper.columns.find(paperColObject => paperColObject.obsoleteIDForMigration === col);
         if (paperCol) colObject.sourceColumnMap[paper.id] = paperCol.id;
         // if the paper doesn't have such a column, just don't have a mapping;
         // the column in the paper, and the mapping here, will get added when
@@ -1110,8 +1122,8 @@ module.exports.getMetaanalysesEnteredBy = (user) => {
     (vals) => {
       const email = vals[0];
       const metaanalyses = vals[1];
-      return metaanalyses.filter((ma) => ma.enteredBy === email);
-    }
+      return metaanalyses.filter(ma => ma.enteredBy === email);
+    },
   );
 };
 
@@ -1124,7 +1136,7 @@ module.exports.getMetaanalysisByTitle = (user, title, time, includePapers) => {
   // todo different users can use different titles for the same thing
 
   if (title === config.NEW_META_TITLE) {
-    return getEmailAddressOfUser(user).then((email) => newMetaanalysis(email));
+    return getEmailAddressOfUser(user).then(email => newMetaanalysis(email));
   }
 
   return metaanalysisCache
@@ -1201,7 +1213,8 @@ module.exports.saveMetaanalysis = (metaanalysis, email, origTitle, options) => {
     if (!metaanalysis.id) {
       metaanalysis.id = '/id/ma/' + ctime;
       metaanalysis.enteredBy = email;
-      metaanalysis.ctime = metaanalysis.mtime = ctime;
+      metaanalysis.ctime = ctime;
+      metaanalysis.mtime = ctime;
       doAddMetaanalysisToCache = () => {
         metaanalyses.push(metaanalysis);
         allTitles.push(metaanalysis.title);
@@ -1209,7 +1222,7 @@ module.exports.saveMetaanalysis = (metaanalysis, email, origTitle, options) => {
       };
     } else {
       let i = 0;
-      for (; i < metaanalyses.length; i++) {
+      for (; i < metaanalyses.length; i += 1) {
         if (metaanalyses[i].id === metaanalysis.id) { // todo change metaanalysisCache to be indexed by id?
           original = metaanalyses[i];
           break;
@@ -1265,24 +1278,33 @@ module.exports.saveMetaanalysis = (metaanalysis, email, origTitle, options) => {
     // save the metaanalysis in the data store
     const key = datastore.key(['Metaanalysis', metaanalysis.id]);
     // this is here until we add versioning on the metaanalyses themselves
-    const logKey = datastore.key(['Metaanalysis', metaanalysis.id,
-                                  'MetaanalysisLog', metaanalysis.id + '/' + metaanalysis.mtime]);
+    const logKey = datastore.key([
+      'Metaanalysis', metaanalysis.id,
+      'MetaanalysisLog', metaanalysis.id + '/' + metaanalysis.mtime]);
     if (!options.restoring) console.log('saveMetaanalysis saving (into Metaanalysis and MetaanalysisLog)');
     return new Promise((resolve, reject) => {
       datastore.save(
         [
           { key, data: metaanalysis },
-          { key: logKey,
+          {
+            key: logKey,
             data:
             [
-              { name: 'mtime',
-                value: metaanalysis.mtime },
-              { name: 'enteredBy',
-                value: email },
-              { name: 'metaanalysis',
+              {
+                name: 'mtime',
+                value: metaanalysis.mtime,
+              },
+              {
+                name: 'enteredBy',
+                value: email,
+              },
+              {
+                name: 'metaanalysis',
                 value: metaanalysis,
-                excludeFromIndexes: true },
-            ] },
+                excludeFromIndexes: true,
+              },
+            ],
+          },
         ],
         (err) => {
           if (err) {
@@ -1292,7 +1314,7 @@ module.exports.saveMetaanalysis = (metaanalysis, email, origTitle, options) => {
           } else {
             resolve();
           }
-        }
+        },
       );
     });
   })
@@ -1392,7 +1414,7 @@ function setupClosedBeta() {
   //   last access (trigger a save if more than 24h after the last one)
   //   logged-in email address if available (triggers a save if a new address there)
   //   access count per email address per day for the last 7 days
-  module.exports.touchBetaCode = (code, email) => void email;
+  module.exports.touchBetaCode = (code, email) => {}; // eslint-disable-line no-unused-vars
 }
 
 
@@ -1447,8 +1469,7 @@ module.exports.init = () => {
   getAllMetaanalyses();
   if (!process.env.TESTING) setupClosedBeta();
 
-  module.exports.ready =
-    Promise.resolve()
+  module.exports.ready = Promise.resolve()
     .then(() => metaanalysisCache)
     .then(() => paperCache)
     .then(() => userCache)
@@ -1458,7 +1479,7 @@ module.exports.init = () => {
       // load testing data
       try {
         const storageTools = require('./lib/storage-tools'); // eslint-disable-line global-require
-        const data = fs.readFileSync(__dirname + '/../test/data.json', 'utf8');
+        const data = fs.readFileSync(path.join(__dirname, '..', 'test/data.json'), 'utf8');
 
         return tools.waitForPromise(storageTools.add(JSON.parse(data), { immediate: true })) // eslint-disable-line consistent-return
         .then(() => {

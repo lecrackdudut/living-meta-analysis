@@ -12,3 +12,63 @@
 - tags
 - comments
 - loading and timeout?
+
+
+
+# components hierarchy:
+
+- header with userinfo
+- loading box
+- Metaanalysis
+  - title input
+  - tags
+  - saving message
+  - validation message
+  - edit your copy button
+  - published (reference)
+  - description
+  - table
+    - paper heading explanation box
+    - study/experiment heading explanation box
+    - buttons for adding columns
+    - one click metaanalysis box (wizard?)
+    - buttons for adding rows (also in the containers below)
+    - col headings
+      - editing box
+        - comments
+    - comp col headings
+      - editing box
+        -  comments
+    - papers
+      - paper metadata editing box
+        - title
+        - reference
+        - description
+        - link
+        - DOI
+      - experiment rows
+        - editing box
+          - title
+          - description
+        - data value
+          - details box (computed or entered)
+            - comments
+  - plots container
+    - each plot
+  - graphs table
+    - graph (tr) with label
+      - editing box
+        - comments
+  - aggregates table
+    - aggregate (tr) with label and value
+      - editing box
+        - comments
+  - grouping aggregates table
+    - grouping column selection
+    - grouping aggregate (tr) with label and computed values
+      - editing box
+        - comments
+      - value details box for every value
+  - entered by
+  - mtime
+- Footer with version

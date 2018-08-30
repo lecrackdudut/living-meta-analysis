@@ -4,7 +4,7 @@ const express = require('express');
 
 // guard middleware enforcing that a user is logged in
 const GOOGLE_USER = require('simple-google-openid').guardMiddleware({ realm: 'accounts.google.com' });
-const jsonBodyParser = require('body-parser').json(config.jsonParserOptions);
+const bodyParser = require('body-parser');
 
 const NotFoundError = require('./errors/NotFoundError');
 const UnauthorizedError = require('./errors/UnauthorizedError');
@@ -15,6 +15,8 @@ const config = require('./config');
 const storage = require('./storage');
 const stats = require('./lib/stats');
 const tools = require('./lib/tools');
+
+const jsonBodyParser = bodyParser.json(config.jsonParserOptions);
 
 const api = express.Router({
   caseSensitive: true,

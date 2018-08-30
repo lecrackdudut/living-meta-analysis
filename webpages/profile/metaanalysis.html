@@ -10,7 +10,7 @@
 <!-- Do not send referrer, so Links are followed directly -->
 <meta name="referrer" content="no-referrer">
 
-<body class="loading">
+<body>
 
 <header>
   <a href="/" id="logo-box">
@@ -30,81 +30,8 @@
   </div>
 </header>
 
-<p class="loadingspinner">loading&hellip;</p>
-
-<template id="metaanalysis-template">
-  <section id="metaanalysis" class="validationroot">
-    <header>
-    <!-- <div class="popupbox default editing">
-      <header><h1>LiMA Meta-Analysis</h1></header>
-      <p>A Meta-Analysis in LiMA is a collection of Papers, usually corresponding to multiple journals
-        or conference publications, maybe supported by data from online appendices, accompanying reports or so.
-      <p>Each Paper contains studies or experiments, and together the Papers that make up a Meta-Analysis
-        share a common theme. In the description, please elaborate on the Meta-Analysis itself, and not each
-        Paper in turn. Information for each Paper can be stored/accessed on the page for that Paper.
-      <p>For example, a Meta-Analysis may include on four Papers; Each Paper could contain two experiments.
-        In LiMA this would translate to eight rows (1 for each experiment) and the collective set of columns.
-    </div> -->
-      <h1>Meta-analysis: </h1>
-      <h1 class="title notediting"></h1>
-      <h1 class="title editing oneline" contenteditable placeholder="enter a short name"></h1>
-      <button class="titlerename editing" disabled>rename</button>
-      <!-- rename and change type warnings should only show up if the server confirms
-           that there are actually other users of the thing (paper, column) -->
-      <div class="titlerenamewarning">
-        <h1>Are you sure to rename the meta-analysis from <span class="title"></span>?</h1>
-        <p>If others are using the meta-analysis, a change of the short name might surprise them.
-          To undo, press <button class="titlerenamecancel">cancel</button>
-        </p>
-      </div>
-      <ul class="tags"></ul>
-      <!-- todo there could be an animated gif on the next line that is a spinner that takes just over 3s to go to full, and we reset it on every deferSave -->
-      <span class="localsaving">Your changes are saved locally on this computer.</span>
-      <span class="savepending">will be saved soon&hellip;</span>
-      <span class="saving">saving&hellip;</span>
-      <span class="savingerror" title="Sorry, something unexpected happened. Error details might be available in the browser console. Click here to try saving again.">saving error!</span>
-      <span class="validationerrormessage notunpin editing" title="click here to go to the first highlighted field">please correct fields highlighted below</span>
-      <span class="unsavedmessage notunpin editing" title="click here to go to the first unconfirmed value">some value(s) need confirmation to be saved</span>
-      <a class="edityourcopy" href="#">Edit your copy</a>
-    </header>
-    <!-- <p class="authors">Authors:
-      <span class="value notediting">error</span>
-      <span class="value editing oneline" contenteditable placeholder="enter the authors">error</span>
-    </p> -->
-    <div class="published popupboxtrigger">
-      <div class="edithighlight">
-        <span class="popupboxhighlight" data-focuses=".value.editing">Reference:</span>
-        <span class="value notediting">error</span>
-        <span class="value editing oneline" contenteditable placeholder="authors, year, title, journal etc.">error</span>
-      </div>
-      <div class="popupbox editing" data-boxid='reference'>
-        <div class="pin"></div>
-        <header><p>Reference</p></header>
-        <p class="description">Details of where this Meta-analysis has been published (if anywhere). Should include authors, year, title, and all the usual bibliographic information.</p>
-        <!-- todo comments -->
-      </div>
-    </div>
-    <p class="description edithighlight">
-      <span data-focuses=".value.editing">Description: </span>
-      <span class="value notediting">error</span>
-      <span class="value editing" contenteditable placeholder="add description">error</span>
-    </p>
-    <!-- todo show "other contributors" or "forks" or "clones" ... -->
-    <!-- todo show meta-analyses that use this paper -->
-    <!-- todo show history -->
-    <!-- when not editing, show something for empty doi and link (or nothing at all?) -->
-    <!-- todo comments -->
-    <p class="ma-table-heading">Meta-analysis table:</p>
-    <div class="experiments"></div>
-    <div class="plots"></div>
-    <div class="graphs"></div>
-    <div class="aggregates"></div>
-    <p class='no-table'>No data has been entered for this meta-analysis yet.
-      <span class="only-if-page-about-you">Turn editing on to add data.</span><!-- todo instruction to clone the paper? --></p>
-    <p>Entered <span class="enteredby if-not-yours-or-page-not-about-you needs-owner"> by <a class="value" href="error">error</a></span><span class="ctime"> on <span class="value date">error</span></span></p>
-    <p class="mtime">Last modified: <span class="value date">error</span></p>
-  </section>
-</template>
+<main>
+</main>
 <template id="tag-template"><li><span class="tag">error</span><span class="removetag editing">&times;</span></li></template>
 <template id="new-tag-template"><li class="new"><span class="tag" contenteditable></span></li><li class="addtag editing"><span class="notempty tag">+</span><span class="empty tag"> add tags</span></li></template>
 <template id="experiments-table-template">
@@ -119,7 +46,6 @@
             <div class="pin"></div>
             <header><p>Paper</p></header>
             <p class="description">The Paper an experiment comes from.</p>
-            <!-- todo comments -->
           </div>
         </th>
         <th class="popupboxtrigger experimenttitle">
@@ -130,7 +56,6 @@
             <div class="pin"></div>
             <header><p>Study/Experiment</p></header>
             <p class="description">A row can be a study, an experiment, or a condition within an experiment.</p>
-            <!-- todo comments -->
           </div>
         </th>
         <th class="add">
@@ -1351,11 +1276,10 @@
   </svg>
 </template>
 
-<p class="savingspinner">saving&hellip;</p>
-
 <footer>
   <p>LiMA (Living Meta-Analysis) at <a href="http://port.ac.uk/">University of Portsmouth</a>, &copy; 2016–2017</p>
   <p>Feedback and questions are welcome at <a href="mailto:lima@port.ac.uk">lima@port.ac.uk</a>.</p>
+  <div id="like_button_container">loading</div>
 </footer>
 
 

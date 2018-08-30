@@ -31,3 +31,6 @@ rules:
     - error
     - ignoreEOLComments: true
   no-restricted-syntax: off
+  prefer-destructuring:
+    - 2
+    - object: false
