@@ -10,7 +10,7 @@
   }
   
   /* Style the buttons that are used to open the tab content */
-  .navbar button {
+  .tablinks {
     background-color: inherit;
     float: left;
     border: none;
