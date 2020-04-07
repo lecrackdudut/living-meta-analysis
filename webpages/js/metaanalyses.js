@@ -358,7 +358,7 @@
     metaanalysisEl.classList.toggle('localsaving', !!lima.userLocalStorage);
 
     _.fillEls(metaanalysisEl, '.title', metaanalysis.title);
-    _.fillEls (metaanalysisEl, '.authors .value', metaanalysis.authors);
+    _.fillEls (metaanalysisEl, '.experimentsauthors .value', metaanalysis.authors);
     _.fillEls (metaanalysisEl, '.published .value', metaanalysis.published);
     _.fillEls (metaanalysisEl, '.description .value', metaanalysis.description);
     _.fillEls (metaanalysisEl, '.ctime .value', _.formatDateTime(metaanalysis.ctime));

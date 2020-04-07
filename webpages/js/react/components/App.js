@@ -72,10 +72,14 @@ class App extends React.Component{
             return <div>Loading...</div>;
         } else {
             return (
-            <ul>
-                <li>Reference : {items.published}</li>
-                <li>Description : {items.description}</li>
-            </ul>
+            // <ul>
+            //     <li>Reference : {items.published}</li>
+            //     <li>Description : {items.description}</li>
+            // </ul>
+            <Info
+                reference={items.published}
+                description={items.description}
+            />
             );
         }
           
