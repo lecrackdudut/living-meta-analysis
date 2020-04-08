@@ -81,8 +81,7 @@ class App extends React.Component{
                 description={items.description}
             />
             );
-        }
-          
+        }   
     };
 }
 

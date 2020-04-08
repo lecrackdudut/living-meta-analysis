@@ -3,20 +3,18 @@
   var lima = window.lima;
   var _ = lima._;  // underscore symbol is used for brevity, defined in tools.js
 
+  //
   function extractMetaanalysisTitleFromUrl(path) {
     // the path of a page for a metaanalysis will be '/email/title/*',
-    // so extract the 'title' portion here:
-
+    // so extract the 'title' portion here
     if (!path) path = window.location.pathname;
-
-    var start = path.indexOf('/', 1) + 1;
+    let start = path.indexOf('/', 1) + 1;
     if (start === 0) throw new Error('page url doesn\'t have a title');
-
-    var rest = path.indexOf('/', start);
+    let rest = path.indexOf('/', start);
     if (rest === -1) rest = Infinity;
-
     return path.substring(start, rest);
-  }
+}
+
 
   function updatePageURL() {
     if (extractMetaanalysisTitleFromUrl() == currentMetaanalysis.title) return; // all done
@@ -30,8 +28,11 @@
 
     var url = window.location.pathname.substring(0, start) + currentMetaanalysis.title;
     if (rest > -1) url += window.location.pathname.substring(rest);
+
     if (lima.userLocalStorage) url += '?type=metaanalysis';
+
     window.history.replaceState({}, currentMetaanalysis.title, url);
+
     if (currentMetaanalysis.apiurl) currentMetaanalysisUrl = currentMetaanalysis.apiurl;
   }
 
