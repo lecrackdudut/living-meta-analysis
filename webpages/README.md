@@ -1,16 +1,25 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**Note : This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).**
 
 ## Configuration
 
-**Note : a `NodeJS` version >= ...  and `npm` version >= ... is required**
+**You’ll need to have Node 8.16.0 or Node 10.16.0 or later version on your local development machine** (but it’s not required on the server)
 
-If you haven't already installed Node and npm, you should follow this
-[tutorial for Node and npm installation](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-or installing it directly through your os [package manager](https://nodejs.org/en/download/package-manager/#arch-linux)
+If you haven't already installed `Node` and `npm`, you should follow this
+[tutorial for Node and npm installation](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) or installing it directly through your OS [package manager](https://nodejs.org/en/download/package-manager/#arch-linux)
 
-Once everything's installed, run the following command in the react project directory `webpages/` to install the required dependancies to run the react application :
+Check your `Node` and `npm` versions :
+
+```shell
+$ node -v 
 ```
-npm install
+
+```shell
+$ npm -v
+```
+
+Once everything is installed, run the following command in the react project directory `webpages/` to install the required dependencies to run the react application :
+```shell
+$ npm install
 ```
 You are now ready to start 
 ___
@@ -18,29 +27,29 @@ ___
 
 **In the `webpages` directory, you can use the following commands :**
 
-```
-npm start
+```shell
+$ npm start
 ```
 
-Runs the app in the development mode and opens [http://localhost:8080](http://localhost:8080)in the browser to view the application
+Runs the application in development mode server and opens [http://localhost:8080](http://localhost:8080)in the browser to view the application
 
 >-   The page will reload if you make edits. 
 >
 >-   You will also see any lint errors in the console.
 ___
 
+```shell
+$ npm run build
 ```
-npm run build
-```
-Builds the app for production to the `build` folder. It correctly bundles React in production mode and optimizes the build for the best performance.
+Builds the application for production to the `./build` folder. It correctly bundles React in production mode and optimizes the build for the best performance.
 
 The build is minified and the filenames include the hashes.
-Your app is ready to be deployed!
+Your application is ready to be deployed!
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
 ___
-```
-npm run eject
+```shell
+$ npm run eject
 ```
 >**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
 
