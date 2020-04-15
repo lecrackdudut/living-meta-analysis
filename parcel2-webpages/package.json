@@ -6,6 +6,11 @@
     "start": "parcel serve index.html --port 8080",
     "build": "parcel build index.html"
   },
+  "targets": {
+    "": {
+      "publicUrl": "./"
+    }
+  },
   "devDependencies": {
     "parcel": "^2.0.0-alpha.3.2"
   },

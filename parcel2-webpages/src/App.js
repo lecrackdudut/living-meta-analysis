@@ -4,12 +4,12 @@ import Counter from './shared';
 function PageOne(props) {
     console.log("page1");
     return(
-        <h2>I'm on page 1</h2>
+        <h2>I'm on page 1, <a href="index2.html">link to page 2</a></h2>
     );
 }
 function PageTwo(props) {
     return(
-        <h2>I'm on page 2</h2>
+        <h2>I'm on page 2, <a href="/">link to page 1</a></h2>
     );
 }
 
