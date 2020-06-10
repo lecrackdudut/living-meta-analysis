@@ -19,7 +19,6 @@ import './Metaanalysis.css';
 function Metaanalysis(props) {
   const { metaanalysis } = props;
   populateCircularMa(metaanalysis);
-  console.log(metaanalysis);
   const [edit, setEdit] = useState(false);
   const [title] = useState(metaanalysis.title);
   const [tags] = useState(metaanalysis.tags);
@@ -92,7 +91,11 @@ function Metaanalysis(props) {
             tabName="Aggregates"
             aggregates={aggregates}
             groupingAggregates={groupingAggregates}
-            groupingColumn={metaanalysis.groupingColumnObj ? metaanalysis.groupingColumnObj.title : undefined}
+            groupingColumn={
+              metaanalysis.groupingColumnObj
+                ? metaanalysis.groupingColumnObj.title
+                : undefined
+            }
             groups={metaanalysis.groups}
             makeClickable={makeClickable}
           />

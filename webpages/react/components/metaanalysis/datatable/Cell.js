@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { getDatumValue, formatNumber, formatDateTime } from '../../../tools/datatools';
 import Editable from '../Editable';
+import EditContext from '../EditContext';
+
 
 const dataCellDetails = ({ enteredBy, ctime }) => (
   <>
@@ -26,6 +28,7 @@ const computedCellDetails = ({ fullLabel }, value) => (
 );
 
 export default function Cell(props) {
+  const edit = useContext(EditContext);
   const {
     col, exp, cellId, makeClickable, editCell,
   } = props;
@@ -36,7 +39,7 @@ export default function Cell(props) {
     col.id
       ? (
         <td {...makeClickable(cellId, dataCellDetails(exp))}>
-          <Editable cellId={cellId} type="input" onSave={editCell}>{value}</Editable>
+          <Editable edit={edit} cellId={cellId} type="input" onSave={editCell}>{value}</Editable>
         </td>
       )
       : (
@@ -50,11 +53,11 @@ export default function Cell(props) {
   );
 }
 
-function shouldMemo(prev, next) {
-  return prev.cellId === next.cellId
-    && next.makeClickable(prev.cellId).className === prev.makeClickable(prev.cellId).className
-    && prev.edit === next.edit;
-}
+// function shouldMemo(prev, next) {
+//   return prev.cellId === next.cellId
+//     && next.makeClickable(prev.cellId).className === prev.makeClickable(prev.cellId).className
+//     && prev.edit === next.edit;
+// }
 
 // We'll re-render the Cell only when we detect a change (cell color)
 // export default React.memo(Cell, shouldMemo);

@@ -43,3 +43,8 @@
 .details:empty {
   display: none;
 }
+
+.details input {
+  text-align: left;
+  width: auto;
+}
