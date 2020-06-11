@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './Header.css';
 
 
@@ -6,9 +6,9 @@ function Header() {
   const CLIENT_ID = '358237292980-kbme56c9ih4rpmob16sq8bjig5dms6pl.apps.googleusercontent.com';
   const { gapi, lima } = window;
   const { _ } = lima;
+  const [username, setUsername] = useState();
+  const [photo, setPhoto] = useState();
   function onSignIn(googleUser) {
-    let username;
-    let photo;
     if (!googleUser.isSignedIn()) {
       _.removeClass('body', 'signed-on');
       return;
@@ -25,7 +25,7 @@ function Header() {
         .then((res) => {
           if (res.status === 401) {
             // user isn't known but someone is signed in. Save and then redirect to register.
-            // window.location.href = '/register';
+            window.location.href = '/register';
           } else if (res.status >= 400) {
             // an unexpected error happened with /api/user, server not happy
             _.apiFail();
@@ -36,8 +36,8 @@ function Header() {
         .then((user) => {
           if (!user) return;
 
-          username = user.username || user.email;
-          photo = user.photos[0].value;
+          setUsername(user.username || user.email);
+          setPhoto(user.photos[0].value);
         })
         .catch((err) => {
           console.log(err);
@@ -79,15 +79,18 @@ function Header() {
         {/* <img src="./user.png" alt="user" className="userphoto" /> */}
         <div className="actions">
           <div className="name when-signed-on">
-            {/* Signed in as: */}
-            <span className="username" />
+            {username && (
+              <>
+                Signed in as:
+                {username}
+                {/* TODO: uncomment and styling */}
+                {/* <img src={photo} alt="user" /> */}
+              </>
+            )}
           </div>
           <div id="gbutton" />
           <a href="/profile" className="profile when-signed-on">Profile</a>
           <a href="/" id="toggle-editing" className="only-if-page-about-you">
-            {/* Turn editing */}
-            {/* <span className="ifon">off</span>
-            <span className="ifoff">on</span> */}
           </a>
           {/* <a className="signout when-signed-on">Sign out</a> */}
         </div>
