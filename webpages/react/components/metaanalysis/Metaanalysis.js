@@ -59,14 +59,14 @@ function Metaanalysis(props) {
 
   return (
     <main className="metaanalysis">
-      <div className="titlebar">
-        <div className="title">
-          <p type="input">{title}</p>
-        </div>
-        <Tags edit={edit} tags={tags} />
-        <button className={edit ? 'btn-stop' : 'btn-start'} type="button" onClick={() => setEdit(!edit)}>{editButtonMessage}</button>
-      </div>
       <EditContext.Provider value={edit}>
+        <div className="titlebar">
+          <div className="title">
+            <p type="input">{title}</p>
+          </div>
+          <Tags edit={edit} tags={tags} />
+          <button className={edit ? 'btn-stop' : 'btn-start'} type="button" onClick={() => setEdit(!edit)}>{editButtonMessage}</button>
+        </div>
         <Tabs displayedCell={displayedCell} setDisplayedCell={setDisplayedCell}>
           <Info
             path="/info"
@@ -111,10 +111,11 @@ function Metaanalysis(props) {
             makeClickable={makeClickable}
           />
         </Tabs>
+        <Details displayedCell={displayedCell} setDisplayedCell={setDisplayedCell} />
+        <Metadata metadata={metadata} />
       </EditContext.Provider>
-      <Details displayedCell={displayedCell} setDisplayedCell={setDisplayedCell} />
-      <Metadata metadata={metadata} />
     </main>
+
   );
 }
 

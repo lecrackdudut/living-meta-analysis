@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import EditContext from './EditContext';
+
 import './Editable.css';
 
 function Editable(props) {
   const {
-    children, onSave, type, edit, cellId,
+    children, onSave, type, cellId,
   } = props;
+  const edit = useContext(EditContext);
   const value = children;
   const [currentValue, setCurrentValue] = useState(value);
 
@@ -16,7 +19,6 @@ function Editable(props) {
     }
     setCurrentValue(e.target.value);
   };
-
   if (edit) {
     return (
       type === 'input'

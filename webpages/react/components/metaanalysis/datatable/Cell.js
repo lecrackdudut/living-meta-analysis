@@ -1,7 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { getDatumValue, formatNumber, formatDateTime } from '../../../tools/datatools';
 import Editable from '../Editable';
-import EditContext from '../EditContext';
 
 
 const dataCellDetails = ({ enteredBy, ctime }) => (
@@ -28,18 +27,16 @@ const computedCellDetails = ({ fullLabel }, value) => (
 );
 
 export default function Cell(props) {
-  const edit = useContext(EditContext);
   const {
     col, exp, cellId, makeClickable, editCell,
   } = props;
-  // const edit = useContext(EditContext);
   const value = getDatumValue(col, exp);
   const padding = Math.trunc(value).toString().length;
   return (
     col.id
       ? (
         <td {...makeClickable(cellId, dataCellDetails(exp))}>
-          <Editable edit={edit} cellId={cellId} type="input" onSave={editCell}>{value}</Editable>
+          <Editable cellId={cellId} type="input" onSave={editCell}>{value}</Editable>
         </td>
       )
       : (

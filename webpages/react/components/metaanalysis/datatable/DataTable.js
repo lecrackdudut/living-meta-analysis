@@ -1,7 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React, { useContext } from 'react';
+import React from 'react';
 import Paper from './Paper';
-import EditContext from '../EditContext';
 import Editable from '../Editable';
 
 import './DataTable.css';
@@ -17,10 +16,10 @@ const expColumnDetails = (
   </>
 );
 
-const dataColDetails = (col, edit) => (
+const dataColDetails = (col) => (
   <>
-    <p><Editable edit={edit} type="input" cellId={col.id}>{col.title}</Editable></p>
-    <p><Editable edit={edit} type="input" cellId={col.id}>{col.description || 'no detailed description'}</Editable></p>
+    <p><Editable type="input" cellId={col.id}>{col.title}</Editable></p>
+    <p><Editable type="input" cellId={col.id}>{col.description || 'no detailed description'}</Editable></p>
   </>
 
 );
@@ -33,8 +32,6 @@ const computedColDetails = (col) => (
 );
 
 function DataTable(props) {
-  const edit = useContext(EditContext);
-
   const {
     columns, papers, paperOrder, makeClickable, editCell,
   } = props;
@@ -55,7 +52,7 @@ function DataTable(props) {
                 key={col.id || col.fullLabel}
                 {...makeClickable(
                   col.id || col.fullLabel,
-                  col.id ? dataColDetails(col, edit) : computedColDetails(col, edit),
+                  col.id ? dataColDetails(col) : computedColDetails(col),
                 )}
               >
                 {col.title || col.fullLabel}
